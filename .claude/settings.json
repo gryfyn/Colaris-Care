@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Bash(*)",
+      "Agent(*)",
+      "Skill(*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/auto-runner.js on-edit"
+          }
+        ]
+      }
+    ]
+  }
+}

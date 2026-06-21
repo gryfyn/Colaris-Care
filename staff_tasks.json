@@ -1,0 +1,94 @@
+{
+  "tasks": [
+    {
+      "id": "QUEUE-STAFF-001",
+      "team": "frontend",
+      "title": "UI/UX Modernization - Staff Page Design System",
+      "description": "Implement modern UI/UX best practices across the staff page. Apply consistent design tokens (spacing, typography, colors), implement accessible component library patterns, ensure responsive design for all screen sizes, add loading states and skeleton screens, implement proper error boundaries with user-friendly messages, standardize form inputs with validation feedback, add tooltips and help text. Audit accessibility (WCAG 2.1 AA), remove all mock/hardcoded data placeholders."
+    },
+    {
+      "id": "QUEUE-STAFF-002",
+      "team": "frontend",
+      "title": "Remove Mock Data & Connect Live API Endpoints",
+      "description": "Replace all hardcoded mock data with live API calls. Connect all sections (Dashboard, My Residents, Progress Notes, Medications, Incident Report, Drug Disposal, Evacuation Drill) to their respective API endpoints. Implement proper data fetching with useEffect, handle loading/error states gracefully, add pagination for large datasets, implement search/filter functionality, ensure data refresh on mutations."
+    },
+    {
+      "id": "QUEUE-STAFF-003",
+      "team": "backend",
+      "title": "Staff API Route Hardening & Missing Endpoints",
+      "description": "Audit all staff-facing API routes: add missing endpoints for staff dashboard, residents assignment, progress notes, medications management, incident reporting. Implement consistent pagination (limit, offset). Add proper error responses with actionable messages. Ensure all routes use withTenantClient() for RLS enforcement. Implement rate limiting on sensitive endpoints. Add request validation middleware. Document all endpoints with request/response schemas."
+    },
+    {
+      "id": "QUEUE-STAFF-004",
+      "team": "testing",
+      "title": "Test all staff API endpoints for errors and data consistency",
+      "description": "Test all staff-related endpoints. Verify correct status codes, proper HIPAA compliance (tenant isolation), data consistency, error handling. Check authentication/authorization on each endpoint. Verify staff can only see their own residents and data."
+    },
+    {
+      "id": "QUEUE-STAFF-005",
+      "team": "frontend",
+      "title": "Test all staff section pages for visual bugs and missing data",
+      "description": "Navigate through all staff sections: Dashboard, My Residents, Progress Notes, Medications, Incident Report, Drug Disposal, Evacuation Drill. Check for rendering errors, missing data, broken buttons, console errors. Document all issues found."
+    },
+    {
+      "id": "QUEUE-STAFF-006",
+      "team": "testing",
+      "title": "Create comprehensive staff page test suite",
+      "description": "Write Jest + RTL tests for staff page components: StaffApp, DashboardView, MyResidentsView, ProgressNotesView, etc. Test navigation, state management, API calls, user interactions. Target 75%+ code coverage for staff page."
+    },
+    {
+      "id": "QUEUE-STAFF-007",
+      "team": "backend",
+      "title": "Ensure staff API endpoints have proper auth checks",
+      "description": "Review src/app/api/v1/ routes used by staff page. Ensure all endpoints check user roles/permissions. Return 401/403 with clear error messages. Ensure staff can only access their own data. Verify RLS policies correctly isolate staff from other tenants' data."
+    },
+    {
+      "id": "QUEUE-STAFF-008",
+      "team": "database",
+      "title": "Schema Verification for Staff-Related Tables",
+      "description": "Review staff-related table schemas: ensure all tables have tenant_id column and proper RLS policies. Verify withTenantClient() is correctly setting app.tenant_id. Check encryption column definitions. Add database constraints to prevent NULL tenant_id. Verify indexes on common query paths (tenant_id, staff_id, resident_id)."
+    },
+    {
+      "id": "QUEUE-STAFF-009",
+      "team": "testing",
+      "title": "E2E Tests - Staff Page Full Workflow",
+      "description": "Write comprehensive E2E tests covering: staff login → view dashboard → view assigned residents → create progress note → create incident report → drug disposal log → evacuation drill → view medications. Use real database. Test all CRUD operations. Test error scenarios. Target 80%+ coverage of staff page user flows."
+    },
+    {
+      "id": "QUEUE-STAFF-010",
+      "team": "testing",
+      "title": "Unit Tests - Staff API Routes & Permissions",
+      "description": "Write unit tests for all staff-facing API routes: test authorization checks pass/fail correctly, test input validation, test error responses, test edge cases. Mock database for speed. Aim for 90%+ code coverage on staff API routes. Test that PERMISSIONS constants are correctly enforced."
+    },
+    {
+      "id": "QUEUE-STAFF-011",
+      "team": "security",
+      "title": "Security Review - Staff Page Threat Model",
+      "description": "Perform threat modeling on the staff page. Identify all entry points, data flows, and trust boundaries. Document OWASP Top 10 risks. Review authentication/authorization architecture. Ensure HIPAA compliance. Create threat matrix with severity levels. Check for common vulnerabilities (privilege escalation, unauthorized access to other staff's data)."
+    },
+    {
+      "id": "QUEUE-STAFF-012",
+      "team": "security",
+      "title": "API Security Audit - Staff Page Endpoints",
+      "description": "Test all staff-related API endpoints for SQL injection, authentication bypasses, authorization flaws, rate limiting, input validation. Verify all endpoints enforce role-based access control and staff data isolation. Test for timing attacks, parameter pollution."
+    },
+    {
+      "id": "QUEUE-STAFF-013",
+      "team": "security",
+      "title": "Frontend Security - Staff Page XSS, CSRF, Vulnerabilities",
+      "description": "Test staff page for XSS (reflected, stored, DOM-based), CSRF attacks, insecure deserialization. Check: input sanitization, output encoding, CSP headers. Audit React component rendering for injection risks. Check npm dependencies. Verify no secrets in frontend code."
+    },
+    {
+      "id": "QUEUE-STAFF-014",
+      "team": "frontend",
+      "title": "Test staff page responsiveness and mobile layout",
+      "description": "Test staff page on mobile (< 768px), tablet (768-1024px), and desktop. Verify hamburger menu works, navigation is accessible, all sections render correctly on each breakpoint. Test touch interactions."
+    },
+    {
+      "id": "QUEUE-STAFF-015",
+      "team": "backend",
+      "title": "Debug & Fix Staff Page Data Display",
+      "description": "The staff page may have seeded data in database but data not showing. Debug the issue: (1) Verify API endpoints return correct data when authenticated (2) Check if AuthContext is setting tokens and tenant_id correctly (3) Check if RLS policies are filtering data correctly (4) Verify tenant_id filtering in API endpoints (5) Check browser console for errors (6) Test all staff sections load (7) Verify API calls are being made from staff page."
+    }
+  ]
+}

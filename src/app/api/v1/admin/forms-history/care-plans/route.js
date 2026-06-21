@@ -1,0 +1,117 @@
+import { authenticate, authorize, handleError } from '@/lib/auth-guard.js';
+import { decryptPHI } from '@/lib/encryption.js';
+import { withTenantClient } from '@/lib/db.js';
+import { PERMISSIONS } from '@/lib/roles.js';
+import { AuditLogger } from '@/lib/audit-logger.js';
+import { getTenantKey } from '@/lib/tenant-key.js';
+
+const audit = new AuditLogger();
+
+// Care-plan lifecycle -> the badge vocabulary the Reports Hub renders.
+const STATUS_MAP = { draft: 'draft', active: 'approved', superseded: 'completed', expired: 'completed' };
+
+function safeDecrypt(value, key) {
+  if (!value) return '';
+  try { return decryptPHI(value, key) || ''; } catch { return ''; }
+}
+
+export async function GET(request) {
+  try {
+    const authResult = await authenticate(request);
+    if (authResult.error) return Response.json({ error: authResult.error }, { status: authResult.status });
+    const { user } = authResult;
+
+    if (!authorize(user.role, PERMISSIONS.ADMIN_REPORTS)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const residentId = searchParams.get('residentId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
+
+    const result = await withTenantClient(user.tenantId, user.staffId, async (client) => {
+      const conditions = ['cp.tenant_id = $1'];
+      const params = [user.tenantId];
+
+      if (residentId) {
+        params.push(residentId);
+        conditions.push(`cp.resident_id = $${params.length}`);
+      }
+
+      if (startDate) {
+        params.push(startDate);
+        conditions.push(`cp.created_at::date >= $${params.length}`);
+      }
+
+      if (endDate) {
+        params.push(endDate);
+        conditions.push(`cp.created_at::date <= $${params.length}`);
+      }
+
+      const where = conditions.join(' AND ');
+      params.push(limit);
+      params.push(offset);
+
+      const { rows } = await client.query(
+        `SELECT
+          cp.id,
+          'care_plans' AS form_type,
+          cp.resident_id,
+          r.first_name AS r_first_name,
+          r.last_name  AS r_last_name,
+          cp.created_at AS date_created,
+          CONCAT(s.first_name, ' ', s.last_name) AS author,
+          cp.status AS db_status,
+          COUNT(*) OVER() AS total_count
+        FROM care.care_plans cp
+        LEFT JOIN care.residents r ON cp.resident_id = r.id
+        LEFT JOIN ref.staff s ON cp.created_by = s.id
+        WHERE ${where}
+        ORDER BY cp.created_at DESC
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params
+      );
+
+      return rows;
+    });
+
+    await audit.logSelect({
+      tableName: 'care.care_plans',
+      residentId: null,
+      req: { user },
+      justification: 'Forms history report',
+    });
+
+    const tenantKey = await getTenantKey(user.tenantId);
+    for (const row of result) {
+      const first = safeDecrypt(row.r_first_name, tenantKey);
+      const last  = safeDecrypt(row.r_last_name,  tenantKey);
+      row.resident_name = [first, last].filter(Boolean).join(' ') || 'Unknown';
+    }
+    const total = result[0]?.total_count || 0;
+
+    return Response.json({
+      data: result.map(row => {
+        const status = STATUS_MAP[row.db_status] || 'in_progress';
+        return {
+          id: row.id,
+          formType: row.form_type,
+          residentId: row.resident_id,
+          residentName: row.resident_name,
+          dateCreated: row.date_created,
+          author: (row.author || '').trim() || 'Unknown',
+          status,
+          progressPercent: status === 'approved' || status === 'completed' ? 100 : status === 'draft' ? 20 : 60,
+        };
+      }),
+      total,
+      limit,
+      offset,
+    });
+  } catch (err) {
+    return handleError(err);
+  }
+}

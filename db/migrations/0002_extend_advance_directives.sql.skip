@@ -1,0 +1,93 @@
+-- Migration: Extend care.advance_directives with comprehensive form fields
+-- This adds all fields needed for the 6-step advance directive wizard
+
+-- Step 1: Resident Information
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS purpose_acknowledged VARCHAR(50);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS clarification_notes TEXT;
+
+-- Step 2: Health Care Agent
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS has_agent VARCHAR(10);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_relationship VARCHAR(100);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_phone VARCHAR(30);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_phone_alt VARCHAR(30);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_email VARCHAR(200);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_authority TEXT[];
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_limitations TEXT;
+
+-- Step 3: Mental Health Treatment Preferences
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS psych_med_consent VARCHAR(50);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS psych_med_notes TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS hospitalization_consent VARCHAR(50);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS preferred_facility TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS emergency_intervention_consent VARCHAR(50);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS intervention_notify TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS intervention_notify_phone VARCHAR(30);
+
+-- Step 4: Specific Treatment Preferences
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS therapy_preferences TEXT[];
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS therapies_avoid TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS meds_avoid TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS non_med_alternatives TEXT[];
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS med_notes TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS comm_preferences TEXT[];
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS deescalation_strategies TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS crisis_avoid TEXT;
+
+-- Step 5: Personal Values & Culture
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS spiritual_care VARCHAR(50);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS faith_tradition TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS spiritual_practices TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS chaplain_contact TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS cultural_mindfulness VARCHAR(50);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS cultural_considerations TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS what_matters_most TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS strengths_and_comforts TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS last_reviewed_date DATE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS next_review_date DATE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agency_phone VARCHAR(30);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS staff_contact_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS emergency_services_contact TEXT;
+
+-- Step 6: End-of-Life & Signatures
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS end_of_life_instructions VARCHAR(10);
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS end_of_life_details TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS polst_on_file VARCHAR(50);
+
+-- Resident Signature
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS resident_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS resident_signature TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS resident_sign_date DATE;
+
+-- Witness 1
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS witness1_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS witness1_signature TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS witness1_date DATE;
+
+-- Witness 2 (Optional)
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS witness2_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS witness2_signature TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS witness2_date DATE;
+
+-- Health Care Agent Acknowledgment
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_ack_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_ack_signature TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS agent_ack_date DATE;
+
+-- Staff Sign-Off
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS staff_sign_name TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS staff_signature TEXT;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS staff_sign_date DATE;
+
+-- Track completion status for each step
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS step_1_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS step_2_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS step_3_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS step_4_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS step_5_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS step_6_completed BOOLEAN DEFAULT FALSE;
+
+-- Update timestamps
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ;
+ALTER TABLE care.advance_directives ADD COLUMN IF NOT EXISTS submitted_by UUID REFERENCES ref.staff(id);

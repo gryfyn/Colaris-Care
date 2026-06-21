@@ -1,0 +1,14 @@
+teams/
+├── frontend.md         - Frontend team prompt and configuration
+├── backend.md          - Backend team prompt and configuration
+├── database.md         - Database team prompt and configuration
+├── testing.md          - Testing team prompt and configuration
+└── token-optimization.md - Token optimization team prompt and configuration
+
+Each team file contains:
+1. Team role and responsibilities
+2. Capabilities and constraints
+3. Tools and access levels
+4. Work process and approval flow
+5. Token limits and budget
+6. Reporting format

@@ -1,0 +1,192 @@
+-- Migration: Extend care.care_plans with comprehensive wizard step fields
+-- This adds all fields needed for the 7-step care plan wizard
+
+-- Step 1: Patient & Plan Info
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS plan_type_detail VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS most_recent_plan_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS review_schedule_detail VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_last_name TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_first_name TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_relation TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_email VARCHAR(200);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_contact_method VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_contact_times TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_address TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rep_city_state_zip TEXT;
+
+-- Step 2: Care Planning Team
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_org TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_email VARCHAR(200);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS res_prov_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS res_prov_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS res_prov_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS res_prov_email VARCHAR(200);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_relation TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_email VARCHAR(200);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_ok_contact VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS family_roi_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_org TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_roi_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_ok_contact VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_pcsp VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_org TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_roi_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_ok_contact VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS encc_pcsp VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_org TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_roi_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_ok_contact VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cmhp_svc_pcsp VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_org TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_first TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_last TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_phone VARCHAR(30);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_roi_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_ok_contact VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS prsb_pcsp VARCHAR(10);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS isp_team_members TEXT;
+
+-- Step 3: Core Assessment
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS selected_domains INTEGER[];
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS psychiatric_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS psychiatric_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS psychiatric_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS medical_health_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS medical_health_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS medical_health_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS substance_use_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS substance_use_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS substance_use_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS adl_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS adl_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS adl_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS social_relationships_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS social_relationships_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS social_relationships_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS vocational_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS vocational_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS vocational_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS legal_risk_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS legal_risk_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS legal_risk_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS housing_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS housing_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS housing_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_ohp_strengths TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_oho_needs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS cco_oho_cultural TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS tribal_affiliation TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS language_pref TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS spiritual TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS gender_identity TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS other_cultural TEXT;
+
+-- Step 4: Recovery Goals
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_statement TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj1 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj1_intervention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj1_frequency VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj1_responsible VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj1_progress TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj2 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj2_intervention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj2_frequency VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj2_responsible VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal1_obj2_progress TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_statement TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj1 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj1_intervention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj1_frequency VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj1_responsible VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj1_progress TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj2 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj2_intervention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj2_frequency VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj2_responsible VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal2_obj2_progress TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_statement TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj1 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj1_intervention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj1_frequency VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj1_responsible VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj1_progress TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj2 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj2_intervention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj2_frequency VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj2_responsible VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS goal3_obj2_progress TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS med_mgmt TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS phys_health TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS nutrition TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS sleep TEXT;
+
+-- Step 5: Safety & Risk Plan
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS crisis_warning_signs TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS crisis_coping_strategies TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS crisis_contacts TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS oregon_crisis_resources TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS suicide_protocol TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS self_harm_protocol TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS aggression_protocol TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS awol_prevention TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS contraband_policy TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS mandatory_reporting TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS additional_safety TEXT;
+
+-- Step 6: Community & Discharge
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS community_cc0 TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS ohp_coverage VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS peer_support TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS voc_rehab TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS housing_resources TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS other_resources TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS discharge_housing VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS discharge_income VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS discharge_natural_supports TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS discharge_aftercare TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS discharge_target_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS discharge_readiness TEXT;
+
+-- Step 7: Legal & Signatures
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS guardianship TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS advanced_directive VARCHAR(20);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS rights_notification_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS consent_release_on_file TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS grievance_explained_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS client_agreement VARCHAR(50);
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS client_signature TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS client_sign_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS guardian_sign_name TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS guardian_signature TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS guardian_sign_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS director_name TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS director_signature TEXT;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS director_sign_date DATE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS review_schedule_final VARCHAR(50);
+
+-- Step completion tracking
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_1_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_2_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_3_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_4_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_5_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_6_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS step_7_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ;
+ALTER TABLE care.care_plans ADD COLUMN IF NOT EXISTS submitted_by UUID REFERENCES ref.staff(id);

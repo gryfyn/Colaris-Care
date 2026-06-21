@@ -1,0 +1,53 @@
+-- ============================================================================
+-- Migration 0014: Notification Documents Integration
+-- ============================================================================
+-- Purpose: Add document reference columns to care.notifications table
+--          to support attaching admission form PDFs to notifications.
+--
+-- Regulation: HIPAA § 164.312(b) — Access control, audit logging
+--             HIPAA § 164.312(a)(2)(i) — Encryption and decryption of PHI
+--             OAR 309-001-0100 — Facility documentation requirements
+--
+-- Date: 2026-05-17
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- Alter: care.notifications
+-- ============================================================================
+-- Add columns to link notifications to admission documents
+
+ALTER TABLE IF EXISTS care.notifications
+  ADD COLUMN IF NOT EXISTS document_id UUID REFERENCES care.admission_documents(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS related_admission_id UUID REFERENCES care.pending_admissions(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+
+-- Add indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_notifications_document_id
+  ON care.notifications(document_id)
+  WHERE dismissed_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_related_admission_id
+  ON care.notifications(related_admission_id, created_at DESC)
+  WHERE dismissed_at IS NULL;
+
+-- ============================================================================
+-- Trigger: Update updated_at on care.notifications
+-- ============================================================================
+-- Ensure updated_at is set when records are modified
+-- (if it doesn't already exist)
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.triggers
+    WHERE trigger_name = 'notifications_updated_at_trigger'
+  ) THEN
+    CREATE TRIGGER notifications_updated_at_trigger
+    BEFORE UPDATE ON care.notifications
+    FOR EACH ROW
+    EXECUTE FUNCTION care.set_updated_at();
+  END IF;
+END $$;
+
+COMMIT;

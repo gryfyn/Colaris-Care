@@ -1,0 +1,138 @@
+{
+  "teams": {
+    "frontend": {
+      "name": "Frontend Team",
+      "emoji": "🎨",
+      "description": "React components, pages, styling, UI/UX",
+      "capabilities": [
+        "Component development",
+        "Page creation",
+        "Styling and layout",
+        "Performance optimization",
+        "Accessibility improvements",
+        "Error handling and user feedback"
+      ],
+      "tools": [
+        "Read",
+        "Edit",
+        "Glob",
+        "Bash"
+      ],
+      "maxTokensPerTask": 15000,
+      "constraints": [
+        "Must use the frontend-design skill for UI work",
+        "Follow existing component patterns in src/app/",
+        "Test in dev server before submitting",
+        "Avoid breaking existing routes"
+      ]
+    },
+    "backend": {
+      "name": "Backend Team",
+      "emoji": "⚙️",
+      "description": "API routes, middleware, business logic, integrations",
+      "capabilities": [
+        "Route development",
+        "Middleware creation",
+        "Authentication/authorization",
+        "Database query optimization",
+        "Error handling",
+        "API documentation"
+      ],
+      "tools": [
+        "Read",
+        "Edit",
+        "Glob",
+        "Bash"
+      ],
+      "maxTokensPerTask": 12000,
+      "constraints": [
+        "Follow Express/Next.js App Router patterns",
+        "Add HIPAA compliance checks for PHI endpoints",
+        "Document all new routes",
+        "Ensure proper error codes and messages"
+      ]
+    },
+    "database": {
+      "name": "Database Team",
+      "emoji": "🗄️",
+      "description": "Schema design, migrations, queries, data integrity",
+      "capabilities": [
+        "Migration creation",
+        "Schema design",
+        "Index optimization",
+        "Backup/restore procedures",
+        "Data validation",
+        "Performance tuning"
+      ],
+      "tools": [
+        "Read",
+        "Edit",
+        "Bash"
+      ],
+      "maxTokensPerTask": 10000,
+      "constraints": [
+        "All migrations must be idempotent",
+        "Include RLS policies for multi-tenancy",
+        "Test migrations on staging data",
+        "Document rollback procedures"
+      ]
+    },
+    "testing": {
+      "name": "Testing Team",
+      "emoji": "✅",
+      "description": "Unit tests, integration tests, test coverage, CI/CD",
+      "capabilities": [
+        "Jest test writing",
+        "React Testing Library",
+        "Integration testing",
+        "Coverage analysis",
+        "Regression detection",
+        "Performance benchmarking"
+      ],
+      "tools": [
+        "Read",
+        "Edit",
+        "Glob",
+        "Bash"
+      ],
+      "maxTokensPerTask": 11000,
+      "constraints": [
+        "Aim for 80%+ code coverage",
+        "Test critical paths first",
+        "Keep tests isolated and fast",
+        "Use the testing agent for test writing"
+      ]
+    },
+    "token-optimization": {
+      "name": "Token Optimization Team",
+      "emoji": "⚡",
+      "description": "Monitor token usage, optimize prompts, implement caching, reduce costs",
+      "capabilities": [
+        "Token analysis",
+        "Prompt compression",
+        "Context caching strategy",
+        "Cost analysis",
+        "Request batching",
+        "Model selection optimization"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Bash"
+      ],
+      "maxTokensPerTask": 8000,
+      "constraints": [
+        "Generate token usage reports after each task",
+        "Identify and suggest optimizations",
+        "Recommend caching opportunities",
+        "Track savings vs. baseline"
+      ]
+    }
+  },
+  "metadata": {
+    "sessionStart": "2026-05-16T00:00:00Z",
+    "totalTeams": 5,
+    "coordinationBackend": "github-issues",
+    "autoPauseOnError": true
+  }
+}

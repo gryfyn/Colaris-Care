@@ -1,0 +1,163 @@
+-- ────────────────────────────────────────────────────────────────────────────
+-- 0010: Admission Workflow System
+-- ────────────────────────────────────────────────────────────────────────────
+
+-- Create admission schema if not exists
+CREATE SCHEMA IF NOT EXISTS admission;
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Table: admission.admissions (main tracking)
+-- ────────────────────────────────────────────────────────────────────────────
+-- ROLLBACK: DROP TABLE IF EXISTS admission.admissions CASCADE;
+
+CREATE TABLE IF NOT EXISTS admission.admissions (
+  id BIGSERIAL PRIMARY KEY,
+  resident_id BIGINT REFERENCES auth.users(id) ON DELETE RESTRICT,
+  pre_screening_id BIGINT REFERENCES admission.pre_screening(id) ON DELETE SET NULL,
+  nursing_assessment_id BIGINT REFERENCES admission.nursing_assessment(id) ON DELETE SET NULL,
+  advance_directive_id BIGINT REFERENCES admission.advance_directive(id) ON DELETE SET NULL,
+  status TEXT DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  reviewed_by BIGINT REFERENCES auth.users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  review_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indices for admission.admissions
+CREATE INDEX IF NOT EXISTS idx_admissions_resident_id ON admission.admissions(resident_id);
+CREATE INDEX IF NOT EXISTS idx_admissions_status ON admission.admissions(status);
+CREATE INDEX IF NOT EXISTS idx_admissions_created_at ON admission.admissions(created_at);
+CREATE INDEX IF NOT EXISTS idx_admissions_submitted_at ON admission.admissions(submitted_at);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Table: admission.pre_screening
+-- ────────────────────────────────────────────────────────────────────────────
+-- ROLLBACK: DROP TABLE IF EXISTS admission.pre_screening CASCADE;
+
+CREATE TABLE IF NOT EXISTS admission.pre_screening (
+  id BIGSERIAL PRIMARY KEY,
+  admission_id BIGINT NOT NULL REFERENCES admission.admissions(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  date_of_birth DATE,
+  contact_phone TEXT,
+  emergency_contact TEXT,
+  primary_physician TEXT,
+  allergies TEXT,
+  current_medications TEXT,
+  medical_conditions TEXT,
+  vision_hearing TEXT,
+  mobility_aids TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indices for admission.pre_screening
+CREATE INDEX IF NOT EXISTS idx_pre_screening_admission_id ON admission.pre_screening(admission_id);
+CREATE INDEX IF NOT EXISTS idx_pre_screening_full_name ON admission.pre_screening(full_name);
+CREATE INDEX IF NOT EXISTS idx_pre_screening_created_at ON admission.pre_screening(created_at);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Table: admission.nursing_assessment
+-- ────────────────────────────────────────────────────────────────────────────
+-- ROLLBACK: DROP TABLE IF EXISTS admission.nursing_assessment CASCADE;
+
+CREATE TABLE IF NOT EXISTS admission.nursing_assessment (
+  id BIGSERIAL PRIMARY KEY,
+  admission_id BIGINT NOT NULL REFERENCES admission.admissions(id) ON DELETE CASCADE,
+  assessment_date DATE,
+  vital_temperature NUMERIC(5,2),
+  vital_bp_systolic INT,
+  vital_bp_diastolic INT,
+  vital_pulse INT,
+  vital_respiration INT,
+  vital_oxygen NUMERIC(5,2),
+  weight_lbs NUMERIC(6,2),
+  height_inches NUMERIC(5,2),
+  skin_assessment TEXT,
+  sleep_history TEXT,
+  pain_level INT CHECK (pain_level >= 0 AND pain_level <= 10),
+  pain_location TEXT,
+  functional_mobility TEXT,
+  fall_risk TEXT,
+  suicide_risk TEXT,
+  sexual_history_risk TEXT,
+  violence_risk TEXT,
+  substance_abuse_history TEXT,
+  mental_health_assessment TEXT,
+  opioid_sedation_scale INT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indices for admission.nursing_assessment
+CREATE INDEX IF NOT EXISTS idx_nursing_assessment_admission_id ON admission.nursing_assessment(admission_id);
+CREATE INDEX IF NOT EXISTS idx_nursing_assessment_assessment_date ON admission.nursing_assessment(assessment_date);
+CREATE INDEX IF NOT EXISTS idx_nursing_assessment_created_at ON admission.nursing_assessment(created_at);
+CREATE INDEX IF NOT EXISTS idx_nursing_assessment_fall_risk ON admission.nursing_assessment(fall_risk);
+CREATE INDEX IF NOT EXISTS idx_nursing_assessment_suicide_risk ON admission.nursing_assessment(suicide_risk);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Table: admission.advance_directive
+-- ────────────────────────────────────────────────────────────────────────────
+-- ROLLBACK: DROP TABLE IF EXISTS admission.advance_directive CASCADE;
+
+CREATE TABLE IF NOT EXISTS admission.advance_directive (
+  id BIGSERIAL PRIMARY KEY,
+  admission_id BIGINT NOT NULL REFERENCES admission.admissions(id) ON DELETE CASCADE,
+  resident_name TEXT NOT NULL,
+  healthcare_agent_name TEXT NOT NULL,
+  healthcare_agent_phone TEXT,
+  alternate_agent_name TEXT,
+  alternate_agent_phone TEXT,
+  mental_health_preferences TEXT,
+  psychiatric_med_preferences TEXT,
+  hospitalization_preference TEXT,
+  emergency_interventions TEXT,
+  specific_treatment_preferences TEXT,
+  personal_values TEXT,
+  religious_cultural_preferences TEXT,
+  end_of_life_wishes TEXT,
+  resident_signature TEXT,
+  resident_signature_date DATE,
+  witness1_name TEXT NOT NULL,
+  witness1_signature TEXT,
+  witness1_date DATE,
+  witness2_name TEXT,
+  witness2_signature TEXT,
+  witness2_date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indices for admission.advance_directive
+CREATE INDEX IF NOT EXISTS idx_advance_directive_admission_id ON admission.advance_directive(admission_id);
+CREATE INDEX IF NOT EXISTS idx_advance_directive_resident_name ON admission.advance_directive(resident_name);
+CREATE INDEX IF NOT EXISTS idx_advance_directive_created_at ON admission.advance_directive(created_at);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- RLS Policies (Row-Level Security)
+-- Data isolation per instance - no tenant column, inherent isolation assumed
+-- ────────────────────────────────────────────────────────────────────────────
+
+-- Enable RLS on all admission tables
+ALTER TABLE admission.admissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admission.pre_screening ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admission.nursing_assessment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admission.advance_directive ENABLE ROW LEVEL SECURITY;
+
+-- Default deny policy - explicitly deny all access by default
+CREATE POLICY IF NOT EXISTS admission_default_deny_admissions ON admission.admissions
+  USING (FALSE) WITH CHECK (FALSE);
+
+CREATE POLICY IF NOT EXISTS admission_default_deny_pre_screening ON admission.pre_screening
+  USING (FALSE) WITH CHECK (FALSE);
+
+CREATE POLICY IF NOT EXISTS admission_default_deny_nursing_assessment ON admission.nursing_assessment
+  USING (FALSE) WITH CHECK (FALSE);
+
+CREATE POLICY IF NOT EXISTS admission_default_deny_advance_directive ON admission.advance_directive
+  USING (FALSE) WITH CHECK (FALSE);
+
+-- Enable bypass for service role if exists
+GRANT USAGE ON SCHEMA admission TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA admission TO authenticated;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA admission TO authenticated;

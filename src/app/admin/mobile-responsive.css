@@ -1,0 +1,347 @@
+/* Mobile Responsive Improvements for Admin Dashboard */
+
+/* ─── SMALL SCREENS: 360px to 480px ─────────────────────────────────────── */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  /* Dashboard layout adjustments */
+  .admin-dashboard {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* Section headers */
+  .admin-section-header {
+    font-size: 16px;
+    margin-bottom: 12px;
+    padding: 0;
+  }
+
+  /* Cards and panels */
+  .admin-card,
+  .admin-panel {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+  }
+
+  /* Tables on mobile: horizontal scroll with better indicators */
+  .admin-table-container {
+    overflow-x: auto;
+    overflow-y: visible;
+    margin: -12px -12px 0 -12px;
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    font-size: 12px;
+    min-width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tbody tr {
+    display: block;
+    border-bottom: 2px solid var(--admin-border);
+    margin-bottom: 12px;
+    padding: 12px 0;
+  }
+
+  .admin-table td {
+    display: block;
+    text-align: right;
+    padding: 8px 12px;
+    border: none;
+    position: relative;
+    padding-left: 50%;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 12px;
+    font-weight: 600;
+    color: var(--admin-text-soft);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Buttons on mobile */
+  .admin-button,
+  button {
+    padding: 10px 12px;
+    font-size: 13px;
+    min-height: 40px;
+    min-width: 40px;
+    border-radius: 6px;
+  }
+
+  .admin-button-small,
+  button.small {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  /* Modal adjustments */
+  .admin-modal,
+  [role="dialog"] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 8px 8px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Grid layouts */
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Navigation */
+  nav {
+    width: 100%;
+    min-height: 50px;
+  }
+
+  /* Input fields */
+  input,
+  select,
+  textarea {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 40px;
+  }
+
+  /* Spacing adjustments */
+  .admin-section {
+    margin-bottom: 16px;
+  }
+
+  /* Status badges */
+  .status-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+  }
+
+  /* Actions menu */
+  .actions-menu {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actions-menu > button {
+    width: 100%;
+  }
+}
+
+/* ─── TABLETS: 481px to 768px ──────────────────────────────────────────── */
+@media (min-width: 481px) and (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  /* Dashboard adjustments */
+  .admin-dashboard {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  /* Columns on tablet */
+  .admin-grid-2-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-grid-3-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Table improvements */
+  .admin-table-container {
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    font-size: 13px;
+  }
+
+  /* Cards */
+  .admin-card,
+  .admin-panel {
+    padding: 14px;
+  }
+
+  /* Modals */
+  .admin-modal,
+  [role="dialog"] {
+    width: 95%;
+    max-height: 85vh;
+    max-width: 600px;
+  }
+
+  /* Input fields */
+  input,
+  select,
+  textarea {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+}
+
+/* ─── LANDSCAPE MODE ────────────────────────────────────────────────────── */
+@media (max-height: 500px) {
+  .admin-modal,
+  [role="dialog"] {
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+
+  /* Reduce padding on small height screens */
+  .admin-section {
+    margin-bottom: 8px;
+  }
+
+  .admin-card {
+    padding: 8px 12px;
+  }
+}
+
+/* ─── TOUCH DEVICE OPTIMIZATIONS ────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  button,
+  a[role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Reduce hover effects on touch devices */
+  button:hover {
+    transform: none;
+  }
+
+  /* Better spacing for touch */
+  .admin-table td,
+  .admin-table th {
+    padding: 12px;
+  }
+
+  /* Remove pointer cursors that don't work on touch */
+  [role="button"] {
+    cursor: auto;
+  }
+
+  /* Improve focus states for touch */
+  input:focus,
+  button:focus,
+  select:focus {
+    outline: 3px solid var(--admin-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* ─── UTILITY CLASSES FOR RESPONSIVE CONTENT ────────────────────────────── */
+.hide-on-mobile {
+  @media (max-width: 480px) {
+    display: none;
+  }
+}
+
+.hide-on-tablet {
+  @media (min-width: 481px) and (max-width: 768px) {
+    display: none;
+  }
+}
+
+.hide-on-desktop {
+  @media (min-width: 769px) {
+    display: none;
+  }
+}
+
+.show-on-mobile {
+  display: none;
+
+  @media (max-width: 480px) {
+    display: block;
+  }
+}
+
+.show-on-tablet {
+  display: none;
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    display: block;
+  }
+}
+
+.responsive-margin {
+  @media (max-width: 480px) {
+    margin: 8px;
+  }
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    margin: 12px;
+  }
+
+  @media (min-width: 769px) {
+    margin: 16px;
+  }
+}
+
+.responsive-padding {
+  @media (max-width: 480px) {
+    padding: 12px;
+  }
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    padding: 14px;
+  }
+
+  @media (min-width: 769px) {
+    padding: 16px;
+  }
+}
+
+/* ─── PRINT STYLES ────────────────────────────────────────────────────────── */
+@media print {
+  nav,
+  button,
+  .admin-actions,
+  .admin-filters {
+    display: none;
+  }
+
+  .admin-modal,
+  [role="dialog"] {
+    position: static;
+    border: none;
+    box-shadow: none;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+
+  a {
+    text-decoration: underline;
+    color: black;
+  }
+}
