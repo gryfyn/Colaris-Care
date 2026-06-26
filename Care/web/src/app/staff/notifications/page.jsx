@@ -6,8 +6,8 @@ import { Badge, EmptyState, PageHeader, StatCard } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
 
 const FALLBACK = [
-  { id: "NOT-1", title: "New resident assignment added", body: "You have been assigned to support West wing rounds.", status: "unread", createdAt: new Date().toISOString() },
-  { id: "NOT-2", title: "New facility announcement", body: "Summer heat safety plan starts today.", status: "read", createdAt: new Date(Date.now() - 7200000).toISOString() },
+  { id: "NOT-1", title: "New resident assignment added", body: "You have been assigned to support West wing rounds.", status: "unread", createdAt: "2026-06-20T08:00:00.000Z" },
+  { id: "NOT-2", title: "New facility announcement", body: "Summer heat safety plan starts today.", status: "read", createdAt: "2026-06-20T06:00:00.000Z" },
 ];
 
 function normalize(item) {

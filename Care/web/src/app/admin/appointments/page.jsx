@@ -6,8 +6,8 @@ import { Avatar, Badge, EmptyState, PageHeader, StatCard } from "@/components/ui
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
 
 const FALLBACK = [
-  { id: "APT-1", residentName: "Eleanor Whitfield", title: "Medical visit", startsAt: new Date().toISOString(), location: "Main campus", status: "confirmed" },
-  { id: "APT-2", residentName: "Marcus Bell", title: "Care assessment", startsAt: new Date(Date.now() + 86400000).toISOString(), location: "Wellness room", status: "scheduled" },
+  { id: "APT-1", residentName: "Eleanor Whitfield", title: "Medical visit", startsAt: "2026-06-20T15:00:00.000Z", location: "Main campus", status: "confirmed" },
+  { id: "APT-2", residentName: "Marcus Bell", title: "Care assessment", startsAt: "2026-06-21T15:00:00.000Z", location: "Wellness room", status: "scheduled" },
 ];
 
 function normalize(item) {

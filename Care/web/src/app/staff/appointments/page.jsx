@@ -21,9 +21,10 @@ const STATUS_TONE = { Scheduled: "blue", Confirmed: "green", Completed: "gray", 
 
 const pad = (value) => String(value).padStart(2, "0");
 const toDateKey = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+// Fixed reference day so this sample calendar renders identically on the server
+// and the client (a live `new Date()` here caused React hydration mismatches).
 const dateFromOffset = (offset) => {
-  const date = new Date();
-  date.setHours(12, 0, 0, 0);
+  const date = new Date(2026, 5, 22, 12, 0, 0, 0);
   date.setDate(date.getDate() + offset);
   return toDateKey(date);
 };

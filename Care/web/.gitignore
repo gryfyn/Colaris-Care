@@ -2,3 +2,4 @@ secrets/
 .env.local
 
 .vercel
+playwright/.auth/
