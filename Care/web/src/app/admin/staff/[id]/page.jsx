@@ -1,64 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  ArrowLeft, Award, CalendarDays, ClipboardList, Clock3, Mail,
+  ArrowLeft, Award, BadgeCheck, CalendarDays, ClipboardList, Mail,
   Phone, ShieldCheck, UserRound, Users,
 } from "lucide-react";
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/components/ui/data";
-import { getStaff } from "../data";
+import { apiData, displayDate, statusTone } from "@/lib/client-api";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: UserRound },
-  { id: "schedule", label: "Schedule", icon: CalendarDays },
   { id: "assignments", label: "Assignments", icon: ClipboardList },
   { id: "certifications", label: "Certifications", icon: Award },
-  { id: "teams", label: "Teams", icon: Users },
 ];
 
-const STATUS_TONES = { "In progress": "green", Scheduled: "blue", Planned: "gray", Current: "green", "Due soon": "amber" };
-
-function Feed({ items, icon: Icon, emptyTitle, showStatus = true }) {
-  if (!items.length) {
-    return <EmptyState icon={Icon} title={emptyTitle} note="No sample items are available for this section." />;
-  }
-  return (
-    <div className="cx-feed">
-      {items.map((item) => (
-        <div className="cx-feed-item" key={`${item.title}-${item.detail || "item"}`}>
-          <span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><Icon size={15} /></span>
-          <div className="cx-feed-main">
-            <div className="cx-feed-t">{item.title}</div>
-            {item.detail && <div className="cx-feed-s">{item.detail}</div>}
-          </div>
-          {showStatus && item.status && <Badge tone={STATUS_TONES[item.status] || "gray"}>{item.status}</Badge>}
-        </div>
-      ))}
-    </div>
-  );
+function certText(cert) {
+  if (!cert) return { title: "Credential", detail: "" };
+  if (typeof cert === "string") return { title: cert, detail: "" };
+  return {
+    title: cert.title || cert.name || cert.credential || "Credential",
+    detail: [cert.detail, cert.status, cert.expiresAt && `Expires ${displayDate(cert.expiresAt)}`].filter(Boolean).join(" · "),
+  };
 }
 
 export default function StaffDetailPage() {
   const { id } = useParams();
-  const staff = getStaff(id);
+  const [staff, setStaff] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [tab, setTab] = useState("overview");
 
-  if (!staff) {
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await apiData(`/api/v1/staff/${id}`);
+        if (alive) setStaff(data);
+      } catch (err) {
+        if (alive) setError(err.message || "Staff member not found");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [id]);
+
+  const assignments = staff?.assignments || [];
+  const certifications = staff?.certifications || [];
+  const currentTab = useMemo(() => TABS.find((item) => item.id === tab) || TABS[0], [tab]);
+
+  if (loading) {
+    return (
+      <div className="cx-wide">
+        <EmptyState icon={UserRound} title="Loading staff profile" note="Fetching the team member's work profile..." />
+      </div>
+    );
+  }
+
+  if (error || !staff) {
     return (
       <div className="cx-wide">
         <EmptyState
           icon={UserRound}
           title="Staff member not found"
-          note="The profile may have been removed or the link is incorrect."
+          note={error || "The profile may have been removed or the link is incorrect."}
           action={<Link href="/admin/staff" className="cx-btn cx-btn-primary" style={{ textDecoration: "none" }}>Back to staff</Link>}
         />
       </div>
     );
   }
-
-  const currentTab = TABS.find((item) => item.id === tab);
 
   return (
     <div className="cx-wide">
@@ -69,8 +83,8 @@ export default function StaffDetailPage() {
       <PageHeader
         eyebrow="Staff profile"
         title={staff.name}
-        lede="A high-level work profile with current assignments, credentials, and team coverage. Sensitive personal information is not shown."
-        action={<Badge tone={staff.tone} dot>{staff.status}</Badge>}
+        lede="A high-level work profile with role, contact details, assignments, and credentials pulled from the facility database."
+        action={<Badge tone={staff.status ? statusTone(staff.status) : "blue"} dot>{staff.status}</Badge>}
       />
 
       <div className="cx-panel" style={{ padding: 20, marginBottom: 18 }}>
@@ -78,26 +92,28 @@ export default function StaffDetailPage() {
           <Avatar name={staff.name} round />
           <div style={{ minWidth: 180, flex: "1 1 220px" }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: "var(--cx-ink)" }}>{staff.name}</div>
-            <div style={{ marginTop: 5, fontSize: 12.5, color: "var(--cx-muted)" }}>{staff.role} · {staff.shift.label}</div>
+            <div style={{ marginTop: 5, fontSize: 12.5, color: "var(--cx-muted)" }}>
+              {staff.roleTitle || "Team member"}{staff.employeeNumber ? ` · #${staff.employeeNumber}` : ""}
+            </div>
           </div>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
             <div>
               <div className="cx-eyebrow">Email</div>
-              <div style={{ marginTop: 7, fontSize: 13, fontWeight: 600 }}><Mail size={12} style={{ verticalAlign: "-2px", marginRight: 5 }} />{staff.email}</div>
+              <div style={{ marginTop: 7, fontSize: 13, fontWeight: 600 }}><Mail size={12} style={{ verticalAlign: "-2px", marginRight: 5 }} />{staff.email || "Not recorded"}</div>
             </div>
             <div>
               <div className="cx-eyebrow">Work phone</div>
-              <div style={{ marginTop: 7, fontSize: 13, fontWeight: 600 }}><Phone size={12} style={{ verticalAlign: "-2px", marginRight: 5 }} />{staff.phone}</div>
+              <div style={{ marginTop: 7, fontSize: 13, fontWeight: 600 }}><Phone size={12} style={{ verticalAlign: "-2px", marginRight: 5 }} />{staff.phone || "Not recorded"}</div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="cx-stats">
-        <StatCard icon={Clock3} label="Today's coverage" value={staff.shift.today} />
-        <StatCard icon={UserRound} label="Assigned residents" value={staff.residents.length} />
-        <StatCard icon={ClipboardList} label="Open tasks" value={staff.tasks.length} />
-        <StatCard icon={ShieldCheck} label="Credentials tracked" value={staff.certifications.length} />
+        <StatCard icon={ClipboardList} label="Role" value={staff.roleTitle || "Team member"} />
+        <StatCard icon={UserRound} label="Assigned residents" value={assignments.length} />
+        <StatCard icon={Award} label="Credentials tracked" value={certifications.length} />
+        <StatCard icon={CalendarDays} label="Member since" value={displayDate(staff.createdAt, "On file")} />
       </div>
 
       <div className="cx-toolbar" role="tablist" aria-label="Staff profile sections">
@@ -126,44 +142,73 @@ export default function StaffDetailPage() {
           <div className="cx-cols">
             <Panel title="Work overview" pad>
               <div style={{ display: "grid", gap: 18 }}>
-                <div><div className="cx-eyebrow">Role</div><div style={{ marginTop: 7, fontSize: 14, fontWeight: 600 }}>{staff.role}</div></div>
-                <div><div className="cx-eyebrow">Primary team</div><div style={{ marginTop: 7, fontSize: 14 }}>{staff.teams[0]}</div></div>
+                <div><div className="cx-eyebrow">Role</div><div style={{ marginTop: 7, fontSize: 14, fontWeight: 600 }}>{staff.roleTitle || "Team member"}</div></div>
+                <div><div className="cx-eyebrow">Status</div><div style={{ marginTop: 7 }}><Badge tone={statusTone(staff.status)} dot>{staff.status}</Badge></div></div>
                 <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-                  <div><div className="cx-eyebrow">Regular shift</div><div style={{ marginTop: 7, fontSize: 13 }}>{staff.shift.label}</div></div>
-                  <div><div className="cx-eyebrow">Next shift</div><div style={{ marginTop: 7, fontSize: 13 }}>{staff.shift.next}</div></div>
+                  <div><div className="cx-eyebrow">Employee number</div><div style={{ marginTop: 7, fontSize: 13 }}>{staff.employeeNumber || "Not assigned"}</div></div>
+                  <div><div className="cx-eyebrow">Member since</div><div style={{ marginTop: 7, fontSize: 13 }}>{displayDate(staff.createdAt, "On file")}</div></div>
                 </div>
+                <div><div className="cx-eyebrow">Portal account</div><div style={{ marginTop: 7, fontSize: 13 }}>{staff.userId ? "Linked to a login account" : "No portal login linked"}</div></div>
               </div>
             </Panel>
             <Panel title="At a glance">
               <div className="cx-feed">
-                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><UserRound size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Resident assignments</div><div className="cx-feed-s">{staff.residents.length} high-level assignment{staff.residents.length === 1 ? "" : "s"}</div></div></div>
-                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><Award size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Certifications</div><div className="cx-feed-s">{staff.certifications.length} credentials tracked</div></div></div>
-                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><Users size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Teams</div><div className="cx-feed-s">{staff.teams.join(" · ")}</div></div></div>
+                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><UserRound size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Resident assignments</div><div className="cx-feed-s">{assignments.length} active assignment{assignments.length === 1 ? "" : "s"}</div></div></div>
+                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><Award size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Certifications</div><div className="cx-feed-s">{certifications.length} credential{certifications.length === 1 ? "" : "s"} tracked</div></div></div>
+                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><BadgeCheck size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Account</div><div className="cx-feed-s">{staff.email || "No email on file"}</div></div></div>
               </div>
             </Panel>
           </div>
         )}
 
-        {tab === "schedule" && <Panel title="Upcoming shifts"><Feed items={staff.schedule} icon={CalendarDays} emptyTitle="No shifts scheduled" /></Panel>}
-
         {tab === "assignments" && (
-          <div className="cx-cols">
-            <Panel title="Assigned residents">
-              <Feed items={staff.residents.map((name) => ({ title: name, detail: "Current care assignment" }))} icon={UserRound} emptyTitle="No resident assignments" showStatus={false} />
-            </Panel>
-            <Panel title="Tasks">
-              <Feed items={staff.tasks} icon={ClipboardList} emptyTitle="No tasks assigned" />
-            </Panel>
-          </div>
-        )}
-
-        {tab === "certifications" && <Panel title="Credentials and training"><Feed items={staff.certifications} icon={Award} emptyTitle="No certifications recorded" /></Panel>}
-
-        {tab === "teams" && (
-          <Panel title="Team memberships">
-            <Feed items={staff.teams.map((name, index) => ({ title: name, detail: index === 0 ? "Primary team" : "Supporting team" }))} icon={Users} emptyTitle="No team memberships" showStatus={false} />
+          <Panel title="Assigned residents" pad>
+            {assignments.length ? (
+              <div className="cx-feed">
+                {assignments.map((assignment) => (
+                  <Link key={assignment.id} href={`/admin/residents/${assignment.residentId}`} className="cx-feed-item" style={{ textDecoration: "none", color: "inherit" }}>
+                    <span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><UserRound size={15} /></span>
+                    <div className="cx-feed-main">
+                      <div className="cx-feed-t">{assignment.residentName}</div>
+                      <div className="cx-feed-s">Room {assignment.room || "pending"} · since {displayDate(assignment.startsAt, "recently")}</div>
+                    </div>
+                    <Badge tone={statusTone(assignment.status)} dot>{assignment.status}</Badge>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon={Users} title="No resident assignments" note="This team member has no active resident assignments yet." />
+            )}
           </Panel>
         )}
+
+        {tab === "certifications" && (
+          <Panel title="Credentials and training" pad>
+            {certifications.length ? (
+              <div className="cx-feed">
+                {certifications.map((cert, index) => {
+                  const { title, detail } = certText(cert);
+                  return (
+                    <div className="cx-feed-item" key={`${title}-${index}`}>
+                      <span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><Award size={15} /></span>
+                      <div className="cx-feed-main">
+                        <div className="cx-feed-t">{title}</div>
+                        {detail && <div className="cx-feed-s">{detail}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState icon={Award} title="No certifications recorded" note="No credentials have been added for this team member yet." />
+            )}
+          </Panel>
+        )}
+      </div>
+
+      <div className="cx-mt" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--cx-faint)", fontSize: 12 }}>
+        <ShieldCheck size={14} color="var(--cx-accent)" />
+        Work profile only — sensitive personal information is not shown here.
       </div>
     </div>
   );
