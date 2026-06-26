@@ -32,7 +32,7 @@ const BASE_SELECT = `
 `;
 
 export async function GET(request) {
-  return withApiContext(request, PERMISSIONS.RESIDENTS_READ, 'resident_requests:read', async ({ client }) => {
+  return withApiContext(request, PERMISSIONS.RESIDENT_REQUESTS_READ, 'resident_requests:read', async ({ client }) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const params = [];
@@ -57,7 +57,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  return withApiContext(request, PERMISSIONS.RESIDENTS_UPDATE, 'resident_requests:create', async ({ client, user }) => {
+  return withApiContext(request, PERMISSIONS.RESIDENT_REQUESTS_WRITE, 'resident_requests:create', async ({ client, user }) => {
     const body = await readJson(request);
     const { rows } = await client.query(
       `

@@ -21,7 +21,7 @@ function mapRequest(row) {
 
 export async function PATCH(request, { params }) {
   const { id } = await params;
-  return withApiContext(request, PERMISSIONS.RESIDENTS_UPDATE, 'resident_requests:update', async ({ client, user }) => {
+  return withApiContext(request, PERMISSIONS.RESIDENT_REQUESTS_WRITE, 'resident_requests:update', async ({ client, user }) => {
     const body = await readJson(request);
     const { rows } = await client.query(
       `

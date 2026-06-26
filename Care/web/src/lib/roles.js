@@ -27,6 +27,8 @@ export const PERMISSIONS = {
   RESIDENTS_DISCHARGE: 'residents:discharge',
   RESIDENTS_DELETE: 'residents:delete',
   RESIDENTS_EXPORT: 'residents:export',
+  RESIDENT_REQUESTS_READ: 'resident_requests:read',
+  RESIDENT_REQUESTS_WRITE: 'resident_requests:write',
   CARE_PLANS_READ_OWN: 'care_plans:read_own',
   CARE_PLANS_READ: 'care_plans:read',
   CARE_PLANS_CREATE: 'care_plans:create',
@@ -66,6 +68,8 @@ export const PERMISSIONS = {
 
 const STAFF_PERMISSIONS = [
   PERMISSIONS.RESIDENTS_READ,
+  PERMISSIONS.RESIDENT_REQUESTS_READ,
+  PERMISSIONS.RESIDENT_REQUESTS_WRITE,
   PERMISSIONS.CARE_PLANS_READ,
   PERMISSIONS.CARE_PLANS_CREATE,
   PERMISSIONS.CARE_PLANS_UPDATE,
