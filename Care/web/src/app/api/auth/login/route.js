@@ -33,7 +33,7 @@ function safeNext(role, requestedNext) {
 
 export async function POST(request) {
   try {
-    const limit = checkRateLimit(`auth:login:${clientIp(request)}`, 10, 60);
+    const limit = await checkRateLimit(`auth:login:${clientIp(request)}`, 10, 60);
     if (!limit.allowed) {
       const limited = getRateLimitResponse(limit);
       return Response.json(limited.body, { status: limited.status, headers: limited.headers });

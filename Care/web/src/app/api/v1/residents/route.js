@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { PERMISSIONS } from '@/lib/roles.js';
 import { maskPHI } from '@/lib/auth-guard.js';
-import { readJson, withApiContext } from '@/lib/api-helpers.js';
-import { recordAuditEvent } from '@/lib/audit-events.js';
+import { readJson, withPrismaApiContext } from '@/lib/api-helpers.js';
+import { sanitizeAuditMetadata } from '@/lib/audit-events.js';
 import { getTenantKey } from '@/lib/tenant-key.js';
 import {
   buildAAD,
@@ -68,34 +68,34 @@ function ssnAadFromRow(row) {
 }
 
 export async function GET(request) {
-  return withApiContext(request, PERMISSIONS.RESIDENTS_READ, 'residents:read', async ({ client, user }) => {
+  return withPrismaApiContext(request, PERMISSIONS.RESIDENTS_READ, 'residents:read', async ({ tx, user }) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('q');
-    const params = [];
-    const filters = [];
 
+    const where = {};
     if (status) {
-      params.push(status);
-      filters.push(`status = $${params.length}`);
+      where.status = status;
     }
     if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      filters.push(`(lower(first_name || ' ' || last_name) like $${params.length} or lower(coalesce(room, '')) like $${params.length})`);
+      // Case-insensitive match on name or room, mirroring the previous
+      // `lower(first||' '||last) like %q%` / `lower(coalesce(room,'')) like %q%`.
+      where.OR = [
+        { first_name: { contains: search, mode: 'insensitive' } },
+        { last_name: { contains: search, mode: 'insensitive' } },
+        { room: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
-    const { rows } = await client.query(
-      `
-        select id, organization_id, facility_id, first_name, last_name, date_of_birth,
-               room, care_level, status, admitted_at, updated_at,
-               ssn_last4_ciphertext
-          from care.residents
-         ${filters.length ? `where ${filters.join(' and ')}` : ''}
-         order by last_name, first_name
-         limit 200
-      `,
-      params
-    );
+    // Prisma model field names are the introspected snake_case columns, so the
+    // rows map straight into mapResident()/maskPHI() unchanged. RLS still scopes
+    // these rows to the tenant via the context set in withPrismaContext.
+    const rows = await tx.residents.findMany({
+      where,
+      orderBy: [{ last_name: 'asc' }, { first_name: 'asc' }],
+      take: 200,
+    });
+
     // Derive the tenant key lazily: only fetch it when a returned row actually
     // carries ciphertext. Avoids a hard dependency on a configured PHI key for
     // lists with no encrypted SSNs (mapResident guards on ssn_last4_ciphertext).
@@ -106,7 +106,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  return withApiContext(request, PERMISSIONS.RESIDENTS_CREATE, 'residents:create', async ({ client, user }) => {
+  return withPrismaApiContext(request, PERMISSIONS.RESIDENTS_CREATE, 'residents:create', async ({ tx, user }) => {
     const body = await readJson(request);
 
     // Generate the id app-side so the AAD can bind the SSN ciphertext to this row
@@ -123,47 +123,51 @@ export async function POST(request) {
       ssnLookupHash = lookupHashPHI(String(body.ssnLast4), tenantKey, SSN_FIELD);
     }
 
-    const { rows } = await client.query(
-      `
-        insert into care.residents(
-          id, organization_id, facility_id, first_name, last_name, date_of_birth,
-          room, care_level, status, admitted_at, created_by, updated_by,
-          ssn_last4_ciphertext, ssn_last4_key_version, ssn_last4_lookup_hash
-        )
-        values (
-          $1, $2, $3, $4, $5, $6,
-          $7, $8, coalesce($9, 'active'), $10, $11, $11,
-          $12, $13, $14
-        )
-        returning id, organization_id, facility_id, first_name, last_name, date_of_birth,
-                  room, care_level, status, admitted_at, updated_at,
-                  ssn_last4_ciphertext
-      `,
-      [
-        residentId,
-        user.organizationId,
-        user.facilityId,
-        body.firstName,
-        body.lastName,
-        body.dateOfBirth,
-        body.room || null,
-        body.careLevel || null,
-        body.status || 'active',
-        body.admittedAt || null,
-        user.id,
-        ssnCiphertext,
-        ssnKeyVersion,
-        ssnLookupHash,
-      ]
-    );
-    await recordAuditEvent(
-      client,
-      user,
-      'residents:create',
-      { type: 'resident', id: rows[0].id },
-      { residentId: rows[0].id, status: rows[0].status }
-    );
+    const created = await tx.residents.create({
+      data: {
+        id: residentId,
+        organization_id: user.organizationId,
+        facility_id: user.facilityId,
+        first_name: body.firstName,
+        last_name: body.lastName,
+        // date / date-nullable columns: Prisma expects Date objects, whereas the
+        // raw-pg path passed the JSON strings straight through. Normalize here.
+        date_of_birth: toDate(body.dateOfBirth),
+        room: body.room || null,
+        care_level: body.careLevel || null,
+        status: body.status || 'active',
+        admitted_at: toDate(body.admittedAt),
+        created_by: user.id,
+        updated_by: user.id,
+        ssn_last4_ciphertext: ssnCiphertext,
+        ssn_last4_key_version: ssnKeyVersion,
+        ssn_last4_lookup_hash: ssnLookupHash,
+      },
+    });
+
+    // Audit on write — mirrors recordAuditEvent() (same sanitized metadata and
+    // default 'success' outcome), written through Prisma so it stays inside the
+    // same RLS-scoped transaction.
+    await tx.audit_events.create({
+      data: {
+        organization_id: user.organizationId || user.tenantId || null,
+        facility_id: user.facilityId || null,
+        actor_user_id: user.id || null,
+        actor_staff_id: user.staffId || null,
+        action: 'residents:create',
+        target_type: 'resident',
+        target_id: created.id,
+        outcome: 'success',
+        metadata: sanitizeAuditMetadata({ residentId: created.id, status: created.status }),
+      },
+    });
+
     const tenantKey = await getTenantKey(user.organizationId, user.facilityId);
-    return maskPHI(mapResident(rows[0], tenantKey), user.role);
+    return maskPHI(mapResident(created, tenantKey), user.role);
   });
+}
+
+// JSON dates arrive as strings; Prisma date columns require Date instances.
+function toDate(value) {
+  return value ? new Date(value) : null;
 }

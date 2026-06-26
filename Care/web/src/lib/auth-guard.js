@@ -7,6 +7,7 @@ import {
   ROLES,
 } from '@/lib/roles.js';
 import { getRequestContext as buildRequestContext } from '@/lib/request-context.js';
+import { isTokenRevoked } from '@/lib/token-blacklist.js';
 
 export class AuthError extends Error {
   constructor(message, status = 401, code = 'AUTH_ERROR') {
@@ -49,7 +50,11 @@ export async function authenticate(request) {
   }
 
   try {
-    return { user: userFromToken(verifyToken(token, 'access')) };
+    const decoded = verifyToken(token, 'access');
+    if (decoded.jti && (await isTokenRevoked(decoded.jti))) {
+      return { error: 'Token has been revoked', code: 'TOKEN_REVOKED', status: 401 };
+    }
+    return { user: userFromToken(decoded) };
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
       return { error: 'Token expired', code: 'TOKEN_EXPIRED', status: 401 };

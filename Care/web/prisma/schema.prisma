@@ -1,0 +1,624 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["app", "audit_log", "care"]
+}
+
+model schema_migrations {
+  filename   String   @id
+  applied_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("app")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_events {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?  @db.Uuid
+  facility_id     String?  @db.Uuid
+  occurred_at     DateTime @default(now()) @db.Timestamptz(6)
+  actor_user_id   String?  @db.Uuid
+  actor_staff_id  String?  @db.Uuid
+  session_id      String?  @db.Uuid
+  action          String
+  target_type     String?
+  target_id       String?  @db.Uuid
+  outcome         String   @default("success")
+  reason          String?
+  correlation_id  String?
+  request_id      String?
+  source_ip       String?
+  metadata        Json     @default("{}")
+  previous_hash   String?
+  event_hash      String?
+
+  @@index([organization_id, target_type, target_id, occurred_at(sort: Desc)], map: "audit_events_target_idx")
+  @@schema("audit_log")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model admission_cases {
+  id                   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id      String     @db.Uuid
+  facility_id          String     @db.Uuid
+  case_number          String
+  candidate_first_name String
+  candidate_last_name  String
+  status               String     @default("draft")
+  current_step         String?
+  answers              Json       @default("{}")
+  version              Int        @default(1)
+  created_at           DateTime   @default(now()) @db.Timestamptz(6)
+  created_by           String?    @db.Uuid
+  updated_at           DateTime   @default(now()) @db.Timestamptz(6)
+  updated_by           String?    @db.Uuid
+  facilities           facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, facility_id, case_number])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model announcements {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String     @db.Uuid
+  facility_id     String     @db.Uuid
+  title           String
+  body            String
+  audience        String     @default("all")
+  status          String     @default("published")
+  starts_at       DateTime   @default(now()) @db.Timestamptz(6)
+  ends_at         DateTime?  @db.Timestamptz(6)
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  created_by      String?    @db.Uuid
+  facilities      facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model appointments {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String     @db.Uuid
+  facility_id     String     @db.Uuid
+  resident_id     String?    @db.Uuid
+  title           String
+  starts_at       DateTime   @db.Timestamptz(6)
+  ends_at         DateTime?  @db.Timestamptz(6)
+  location        String?
+  status          String     @default("scheduled")
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  created_by      String?    @db.Uuid
+  facilities      facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  residents       residents? @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model care_plans {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  facility_id     String    @db.Uuid
+  resident_id     String    @db.Uuid
+  title           String
+  status          String    @default("draft")
+  summary         String?
+  goals           Json      @default("[]")
+  reviewed_at     DateTime? @db.Date
+  next_review_at  DateTime? @db.Date
+  signed_at       DateTime? @db.Timestamptz(6)
+  approved_at     DateTime? @db.Timestamptz(6)
+  version         Int       @default(1)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_by      String?   @db.Uuid
+  residents       residents @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([organization_id, facility_id, resident_id, updated_at(sort: Desc)], map: "care_care_plans_resident_idx")
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model discharge_records {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  facility_id     String    @db.Uuid
+  resident_id     String    @db.Uuid
+  status          String    @default("draft")
+  discharge_date  DateTime? @db.Date
+  destination     String?
+  summary         String?
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_by      String?   @db.Uuid
+  residents       residents @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model documents {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String     @db.Uuid
+  facility_id     String     @db.Uuid
+  resident_id     String?    @db.Uuid
+  document_type   String
+  title           String
+  object_key      String
+  sha256          String?
+  status          String     @default("active")
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  created_by      String?    @db.Uuid
+  facilities      facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  residents       residents? @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model drug_disposals {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String     @db.Uuid
+  facility_id     String     @db.Uuid
+  resident_id     String?    @db.Uuid
+  medication_name String
+  quantity        String
+  reason          String
+  status          String     @default("recorded")
+  disposed_at     DateTime   @default(now()) @db.Timestamptz(6)
+  witness_name    String?
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  created_by      String?    @db.Uuid
+  facilities      facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  residents       residents? @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model evacuation_drills {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id  String     @db.Uuid
+  facility_id      String     @db.Uuid
+  drill_type       String
+  status           String     @default("completed")
+  occurred_at      DateTime   @db.Timestamptz(6)
+  duration_minutes Int?
+  summary          String?
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  created_by       String?    @db.Uuid
+  facilities       facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model facilities {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id      String                 @db.Uuid
+  name                 String
+  code                 String
+  timezone             String                 @default("America/New_York")
+  status               String                 @default("onboarding")
+  settings             Json                   @default("{}")
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  admission_cases      admission_cases[]
+  announcements        announcements[]
+  appointments         appointments[]
+  documents            documents[]
+  drug_disposals       drug_disposals[]
+  evacuation_drills    evacuation_drills[]
+  organizations        organizations          @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  facility_memberships facility_memberships[]
+  incident_reports     incident_reports[]
+  notifications        notifications[]
+  resident_requests    resident_requests[]
+  residents            residents[]
+  staff_profiles       staff_profiles[]
+
+  @@unique([organization_id, code])
+  @@unique([organization_id, id])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model facility_memberships {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String     @db.Uuid
+  facility_id     String     @db.Uuid
+  user_id         String     @db.Uuid
+  role            String
+  status          String     @default("active")
+  valid_from      DateTime   @default(now()) @db.Timestamptz(6)
+  valid_until     DateTime?  @db.Timestamptz(6)
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  facilities      facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  users           users      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, facility_id, user_id])
+  @@schema("care")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model idempotency_records {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String   @db.Uuid
+  actor_id          String   @db.Uuid
+  operation         String
+  key_hash          String
+  request_hash      String
+  response_status   Int?
+  response_body_ref String?
+  expires_at        DateTime @db.Timestamptz(6)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([organization_id, actor_id, operation, key_hash])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model incident_reports {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id  String     @db.Uuid
+  facility_id      String     @db.Uuid
+  resident_id      String?    @db.Uuid
+  incident_type    String
+  severity         String     @default("low")
+  status           String     @default("open")
+  occurred_at      DateTime   @db.Timestamptz(6)
+  summary          String
+  follow_up_due_at DateTime?  @db.Date
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  created_by       String?    @db.Uuid
+  updated_at       DateTime   @default(now()) @db.Timestamptz(6)
+  updated_by       String?    @db.Uuid
+  facilities       facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  residents        residents? @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medication_administrations {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String      @db.Uuid
+  facility_id     String      @db.Uuid
+  resident_id     String      @db.Uuid
+  medication_id   String      @db.Uuid
+  scheduled_for   DateTime    @db.Timestamptz(6)
+  outcome         String      @default("due")
+  administered_at DateTime?   @db.Timestamptz(6)
+  administered_by String?     @db.Uuid
+  note            String?
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
+  medications     medications @relation(fields: [organization_id, facility_id, medication_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+  residents       residents   @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([organization_id, facility_id, outcome, scheduled_for], map: "care_med_admin_due_idx")
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model medications {
+  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id            String                       @db.Uuid
+  facility_id                String                       @db.Uuid
+  resident_id                String                       @db.Uuid
+  name                       String
+  dosage                     String?
+  route                      String?
+  frequency                  String?
+  status                     String                       @default("active")
+  start_date                 DateTime?                    @db.Date
+  stop_date                  DateTime?                    @db.Date
+  prescriber                 String?
+  version                    Int                          @default(1)
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?                      @db.Uuid
+  updated_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_by                 String?                      @db.Uuid
+  medication_administrations medication_administrations[]
+  residents                  residents                    @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, facility_id, id])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model notifications {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String     @db.Uuid
+  facility_id     String     @db.Uuid
+  user_id         String?    @db.Uuid
+  title           String
+  body            String
+  status          String     @default("unread")
+  created_at      DateTime   @default(now()) @db.Timestamptz(6)
+  read_at         DateTime?  @db.Timestamptz(6)
+  facilities      facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  users           users?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model organization_memberships {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  user_id         String        @db.Uuid
+  role            String
+  status          String        @default("active")
+  valid_from      DateTime      @default(now()) @db.Timestamptz(6)
+  valid_until     DateTime?     @db.Timestamptz(6)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, user_id])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model organizations {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String
+  slug                     String                     @unique
+  status                   String                     @default("onboarding")
+  default_timezone         String                     @default("America/New_York")
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  facilities               facilities[]
+  organization_memberships organization_memberships[]
+  resident_requests        resident_requests[]
+  sessions                 sessions[]
+
+  @@schema("care")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model outbox_events {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?   @db.Uuid
+  facility_id     String?   @db.Uuid
+  aggregate_type  String
+  aggregate_id    String    @db.Uuid
+  event_type      String
+  event_version   Int       @default(1)
+  payload         Json      @default("{}")
+  occurred_at     DateTime  @default(now()) @db.Timestamptz(6)
+  available_at    DateTime  @default(now()) @db.Timestamptz(6)
+  published_at    DateTime? @db.Timestamptz(6)
+  attempts        Int       @default(0)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model progress_notes {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  facility_id     String    @db.Uuid
+  resident_id     String    @db.Uuid
+  note_type       String    @default("shift")
+  body            String
+  status          String    @default("draft")
+  occurred_at     DateTime  @default(now()) @db.Timestamptz(6)
+  signed_at       DateTime? @db.Timestamptz(6)
+  signed_by       String?   @db.Uuid
+  version         Int       @default(1)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_by      String?   @db.Uuid
+  residents       residents @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([organization_id, facility_id, resident_id, occurred_at(sort: Desc)], map: "care_progress_notes_resident_idx")
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model resident_requests {
+  id                                        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id                           String          @db.Uuid
+  facility_id                               String          @db.Uuid
+  resident_id                               String?         @db.Uuid
+  request_type                              String
+  detail                                    String
+  priority                                  String          @default("routine")
+  status                                    String          @default("new")
+  assigned_staff_id                         String?         @db.Uuid
+  completed_at                              DateTime?       @db.Timestamptz(6)
+  created_by                                String?         @db.Uuid
+  updated_by                                String?         @db.Uuid
+  created_at                                DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at                                DateTime        @default(now()) @db.Timestamptz(6)
+  staff_profiles                            staff_profiles? @relation(fields: [assigned_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_resident_requests_created_byTousers users?          @relation("resident_requests_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  facilities                                facilities      @relation(fields: [facility_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organizations                             organizations   @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  residents                                 residents?      @relation(fields: [resident_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_resident_requests_updated_byTousers users?          @relation("resident_requests_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([assigned_staff_id], map: "resident_requests_assigned_staff_idx")
+  @@index([facility_id, status, created_at(sort: Desc)], map: "resident_requests_facility_status_idx")
+  @@index([resident_id], map: "resident_requests_resident_idx")
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model residents {
+  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id            String                       @db.Uuid
+  facility_id                String                       @db.Uuid
+  first_name                 String
+  last_name                  String
+  date_of_birth              DateTime                     @db.Date
+  room                       String?
+  care_level                 String?
+  status                     String                       @default("active")
+  source_admission_case_id   String?                      @db.Uuid
+  admitted_at                DateTime?                    @db.Date
+  discharged_at              DateTime?                    @db.Date
+  version                    Int                          @default(1)
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?                      @db.Uuid
+  updated_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_by                 String?                      @db.Uuid
+  ssn_last4_ciphertext       String?
+  ssn_last4_key_version      Int?                         @db.SmallInt
+  ssn_last4_lookup_hash      String?
+  appointments               appointments[]
+  care_plans                 care_plans[]
+  discharge_records          discharge_records[]
+  documents                  documents[]
+  drug_disposals             drug_disposals[]
+  incident_reports           incident_reports[]
+  medication_administrations medication_administrations[]
+  medications                medications[]
+  progress_notes             progress_notes[]
+  resident_requests          resident_requests[]
+  facilities                 facilities                   @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  roi_records                roi_records[]
+  staff_assignments          staff_assignments[]
+
+  @@unique([organization_id, facility_id, first_name, last_name, date_of_birth])
+  @@unique([organization_id, facility_id, id])
+  @@index([organization_id, facility_id, status, updated_at(sort: Desc)], map: "care_residents_scope_status_idx")
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model roi_records {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  facility_id     String    @db.Uuid
+  resident_id     String    @db.Uuid
+  recipient       String
+  purpose         String
+  status          String    @default("active")
+  effective_at    DateTime? @db.Date
+  expires_at      DateTime? @db.Date
+  revoked_at      DateTime? @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  residents       residents @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sessions {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String         @db.Uuid
+  organization_id   String?        @db.Uuid
+  facility_id       String?        @db.Uuid
+  token_hash        String         @unique
+  refresh_family_id String         @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assurance_level   String         @default("password")
+  issued_at         DateTime       @default(now()) @db.Timestamptz(6)
+  expires_at        DateTime       @db.Timestamptz(6)
+  revoked_at        DateTime?      @db.Timestamptz(6)
+  created_at        DateTime       @default(now()) @db.Timestamptz(6)
+  organizations     organizations? @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users             users          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model staff_assignments {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id  String         @db.Uuid
+  facility_id      String         @db.Uuid
+  staff_profile_id String         @db.Uuid
+  resident_id      String         @db.Uuid
+  status           String         @default("active")
+  starts_at        DateTime       @default(now()) @db.Timestamptz(6)
+  ends_at          DateTime?      @db.Timestamptz(6)
+  created_at       DateTime       @default(now()) @db.Timestamptz(6)
+  residents        residents      @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+  staff_profiles   staff_profiles @relation(fields: [organization_id, facility_id, staff_profile_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, facility_id, staff_profile_id, resident_id])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model staff_profiles {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String              @db.Uuid
+  facility_id       String              @db.Uuid
+  user_id           String?             @db.Uuid
+  employee_number   String
+  first_name        String
+  last_name         String
+  role_title        String?
+  email             String?
+  phone             String?
+  status            String              @default("active")
+  certifications    Json                @default("[]")
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @db.Timestamptz(6)
+  resident_requests resident_requests[]
+  staff_assignments staff_assignments[]
+  facilities        facilities          @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  users             users?              @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, facility_id, employee_number])
+  @@unique([organization_id, facility_id, id])
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  id                                                    String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identity_provider_subject                             String?                    @unique
+  email                                                 String                     @unique
+  display_name                                          String
+  password_hash                                         String?
+  status                                                String                     @default("active")
+  last_authenticated_at                                 DateTime?                  @db.Timestamptz(6)
+  created_at                                            DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                                            DateTime                   @default(now()) @db.Timestamptz(6)
+  facility_memberships                                  facility_memberships[]
+  notifications                                         notifications[]
+  organization_memberships                              organization_memberships[]
+  resident_requests_resident_requests_created_byTousers resident_requests[]        @relation("resident_requests_created_byTousers")
+  resident_requests_resident_requests_updated_byTousers resident_requests[]        @relation("resident_requests_updated_byTousers")
+  sessions                                              sessions[]
+  staff_profiles                                        staff_profiles[]
+
+  @@schema("care")
+}

@@ -1,30 +1,25 @@
+import { useAuthStore } from "@/lib/store/auth-store";
+
+/**
+ * Thin functional wrappers over the Zustand auth store (the single source of
+ * truth). The exported signatures are unchanged so existing callers
+ * (client-api.js, the shells, the login flow, AuthGuard) keep working.
+ */
+
 export function getStoredUser() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(window.localStorage.getItem("colaris_user") || "null");
-  } catch {
-    return null;
-  }
+  return useAuthStore.getState().user;
 }
 
 export function getAccessToken() {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem("colaris_access_token") || "";
+  return useAuthStore.getState().accessToken || "";
 }
 
-export function storeSession({ accessToken, user }) {
-  if (typeof window === "undefined") return;
-  if (accessToken) window.localStorage.setItem("colaris_access_token", accessToken);
-  if (user) window.localStorage.setItem("colaris_user", JSON.stringify(user));
+export function storeSession({ accessToken, user } = {}) {
+  useAuthStore.getState().setSession({ accessToken, user });
 }
 
 export function clearSession() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem("colaris_access_token");
-  window.localStorage.removeItem("colaris_user");
-  window.localStorage.removeItem("colaris_mock_session");
-  document.cookie = "colaris_mock_role=; path=/; max-age=0; SameSite=Lax";
-  document.cookie = "colaris_mock_facility=; path=/; max-age=0; SameSite=Lax";
+  useAuthStore.getState().clearSession();
 }
 
 export async function refreshSession() {

@@ -28,13 +28,17 @@
     "teams:quick": "node scripts/teams-cli.js quick"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@tanstack/react-query": "^5.101.1",
+    "@upstash/redis": "^1.38.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.16.0",
     "next": "16.2.4",
     "pg": "^8.11.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
@@ -48,6 +52,7 @@
     "eslint-config-next": "16.2.4",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4"
   }
 }

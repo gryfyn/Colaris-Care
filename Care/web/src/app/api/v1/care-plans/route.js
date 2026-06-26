@@ -1,6 +1,6 @@
 import { PERMISSIONS, ROLES } from '@/lib/roles.js';
-import { readJson, withApiContext } from '@/lib/api-helpers.js';
-import { staffAssignmentJoin } from '@/lib/staff-access.js';
+import { readJson, withApiContext, withPrismaApiContext } from '@/lib/api-helpers.js';
+import { isStaffAssignmentScoped } from '@/lib/staff-access.js';
 
 function mapPlan(row) {
   return {
@@ -18,23 +18,40 @@ function mapPlan(row) {
 }
 
 export async function GET(request) {
-  return withApiContext(request, PERMISSIONS.CARE_PLANS_READ, 'care_plans:read', async ({ client, user }) => {
-    const assignmentJoin = staffAssignmentJoin(user, 'r');
-    const { rows } = await client.query(
-      `
-        select cp.id, cp.resident_id, r.first_name || ' ' || r.last_name as resident_name,
-               cp.title, cp.status, cp.summary, cp.goals, cp.reviewed_at, cp.next_review_at, cp.updated_at
-          from care.care_plans cp
-          join care.residents r
-            on r.organization_id = cp.organization_id
-           and r.facility_id = cp.facility_id
-           and r.id = cp.resident_id
-          ${assignmentJoin}
-         order by cp.updated_at desc
-         limit 200
-      `
+  return withPrismaApiContext(request, PERMISSIONS.CARE_PLANS_READ, 'care_plans:read', async ({ tx, user }) => {
+    const where = {};
+    // For STAFF, restrict to care plans whose resident has an active assignment
+    // to this staff member — the Prisma equivalent of staffAssignmentJoin().
+    // (org/facility scoping is enforced by RLS on both tables.)
+    if (isStaffAssignmentScoped(user)) {
+      where.residents = {
+        staff_assignments: {
+          some: { staff_profile_id: user.staffId, status: 'active' },
+        },
+      };
+    }
+
+    const plans = await tx.care_plans.findMany({
+      where,
+      include: { residents: { select: { first_name: true, last_name: true } } },
+      orderBy: { updated_at: 'desc' },
+      take: 200,
+    });
+
+    return plans.map((cp) =>
+      mapPlan({
+        id: cp.id,
+        resident_id: cp.resident_id,
+        resident_name: `${cp.residents.first_name} ${cp.residents.last_name}`,
+        title: cp.title,
+        status: cp.status,
+        summary: cp.summary,
+        goals: cp.goals,
+        reviewed_at: cp.reviewed_at,
+        next_review_at: cp.next_review_at,
+        updated_at: cp.updated_at,
+      })
     );
-    return rows.map(mapPlan);
   });
 }
 

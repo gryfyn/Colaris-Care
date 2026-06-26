@@ -82,6 +82,12 @@ export function signRefreshToken(payload) {
   return { token, jti: body.jti };
 }
 
+export function decodeToken(token) {
+  // Decode without verifying the signature — used to read jti/exp at logout so a
+  // revocation can be recorded even if the token is otherwise close to expiry.
+  return jwt.decode(token);
+}
+
 export function verifyToken(token, expectedType = 'access') {
   const { publicKey, algo } = loadKeys();
   const decoded = jwt.verify(token, publicKey, {
