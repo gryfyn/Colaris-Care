@@ -16,7 +16,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
-      testMatch: /extensive\.spec\.js/,
+      testMatch: /(extensive|staff-flows)\.spec\.js/,
     },
   ],
 });
