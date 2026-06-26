@@ -18,11 +18,29 @@ function base64UrlDecode(value) {
   return Uint8Array.from(Buffer.from(base64, 'base64'));
 }
 
+const DEV_FALLBACK_SECRET = 'dev-cookie-secret-change-in-production';
+
+// The portal session cookie is the credential the middleware (proxy.js) trusts
+// to authorize /admin and /staff access. Its HMAC key MUST be a real secret in
+// production — never the public dev fallback — or an attacker who knows the
+// fallback could forge an admin session cookie. Fail closed if misconfigured.
+function resolvePortalSecret() {
+  const secret = process.env.COOKIE_SECRET || process.env.JWT_SECRET || process.env.TENANT_ENCRYPTION_KEY;
+  if (process.env.NODE_ENV === 'production') {
+    if (!secret || secret.length < 16 || secret === DEV_FALLBACK_SECRET) {
+      throw new Error(
+        'COOKIE_SECRET (or JWT_SECRET) must be set to a strong value (>= 16 chars) in production to sign portal sessions. Generate with: openssl rand -hex 32'
+      );
+    }
+    return secret;
+  }
+  return secret || DEV_FALLBACK_SECRET;
+}
+
 async function hmacKey() {
-  const secret = process.env.COOKIE_SECRET || process.env.JWT_SECRET || process.env.TENANT_ENCRYPTION_KEY || 'dev-cookie-secret-change-in-production';
   return crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret),
+    new TextEncoder().encode(resolvePortalSecret()),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']

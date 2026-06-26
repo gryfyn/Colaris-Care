@@ -54,7 +54,9 @@ const env = {
   JWT_ACCESS_EXPIRES_IN:  process.env.JWT_ACCESS_EXPIRES_IN  || '2h',
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '8h',
   ALLOWED_ORIGINS:        process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
-  COOKIE_SECRET:          process.env.COOKIE_SECRET  || 'dev-cookie-secret-change-in-production',
+  // Never expose a known dev fallback for an auth secret in production; consumers
+  // that require it must fail closed (see portal-session.js resolvePortalSecret).
+  COOKIE_SECRET:          process.env.COOKIE_SECRET  || (process.env.NODE_ENV === 'production' ? null : 'dev-cookie-secret-change-in-production'),
   RATE_LIMIT_WINDOW_MS:   parseInt(process.env.RATE_LIMIT_WINDOW_MS    || '60000'),
   RATE_LIMIT_MAX:         parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
   AUTH_RATE_LIMIT_MAX:    parseInt(process.env.AUTH_RATE_LIMIT_MAX     || '5'),
