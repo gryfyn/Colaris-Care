@@ -9,16 +9,22 @@ import {
   CalendarDays,
   ClipboardList,
   Contact,
+  Download,
   FileText,
   FolderOpen,
   HeartHandshake,
+  HeartPulse,
   MapPin,
   NotebookPen,
+  Phone,
   Pill,
+  ShieldCheck,
+  Stethoscope,
   UserRound,
 } from "lucide-react";
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
+import { openAdmissionFormPrint } from "@/lib/admission-print";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: HeartHandshake },
@@ -43,42 +49,124 @@ function DetailRow({ label, value }) {
   );
 }
 
-function AdmissionSummary({ admission }) {
-  const answers = admission?.answers || {};
+function countFilled(list, pick) {
+  if (!Array.isArray(list)) return 0;
+  return list.filter((item) => (pick ? pick(item) : item)).filter(Boolean).length;
+}
+
+function listText(list, pick, limit = 4) {
+  const items = (Array.isArray(list) ? list : [])
+    .map((item) => (pick ? pick(item) : item))
+    .filter(Boolean);
+  if (!items.length) return "None recorded";
+  if (items.length <= limit) return items.join(", ");
+  return `${items.slice(0, limit).join(", ")} +${items.length - limit} more`;
+}
+
+// The emergency contact captured on the admission packet.
+function EmergencyContact({ answers }) {
+  const hasContact = answers.emergencyName || answers.emergencyPhone || answers.emergencyEmail;
   return (
-    <div className="cx-grid">
-      <Panel title="Admission snapshot" pad>
-        <div className="cx-grid">
-          <DetailRow label="Submission status" value={admission ? admission.status : null} />
-          <DetailRow label="Submitted" value={displayDate(admission?.submittedAt, "Recent")} />
-          <DetailRow label="Admission date" value={displayDate(admission?.admittedAt, "Pending")} />
-          <DetailRow label="Room" value={admission?.room || answers.roomAssignment} />
-          <DetailRow label="Care level" value={admission?.careLevel || answers.observationLevel || answers.mobility} />
-          <DetailRow label="Portal email" value={admission?.email || answers.email} />
-          <DetailRow label="Referral source" value={answers.referralSource} />
-          <DetailRow label="Emergency contact" value={answers.emergencyName} />
-          <DetailRow label="Contact phone" value={answers.emergencyPhone} />
-        </div>
-      </Panel>
-      <Panel title="Admission details">
+    <Panel title="Emergency contact" pad>
+      {hasContact ? (
         <div className="cx-feed">
           <div className="cx-feed-item">
             <span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><Contact size={15} /></span>
             <div className="cx-feed-main">
-              <div className="cx-feed-t">{answers.emergencyName || "Emergency contact not set"}</div>
-              <div className="cx-feed-s">{answers.emergencyRelationship || "Relationship not recorded"} {answers.emergencyPhone ? `· ${answers.emergencyPhone}` : ""}</div>
+              <div className="cx-feed-t">{answers.emergencyName || "Not recorded"}</div>
+              <div className="cx-feed-s">{answers.emergencyRelationship || "Relationship not recorded"}</div>
             </div>
           </div>
-          <div className="cx-feed-item">
-            <span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><FileText size={15} /></span>
-            <div className="cx-feed-main">
-              <div className="cx-feed-t">Admission data captured</div>
-              <div className="cx-feed-s">{Object.keys(answers).length} fields stored in the admission snapshot</div>
-            </div>
+          <div className="cx-grid" style={{ marginTop: 4 }}>
+            <DetailRow label="Phone" value={answers.emergencyPhone} />
+            <DetailRow label="Email" value={answers.emergencyEmail} />
           </div>
         </div>
-      </Panel>
-    </div>
+      ) : (
+        <EmptyState icon={Phone} title="No emergency contact" note="No emergency contact was captured on the admission packet." />
+      )}
+    </Panel>
+  );
+}
+
+// A compact, total summary of everything captured in the admission packet.
+function AdmissionPacketSummary({ admission }) {
+  const answers = admission?.answers || {};
+  const fieldsStored = Object.keys(answers).length;
+
+  const groups = [
+    {
+      title: "Demographics & placement",
+      icon: UserRound,
+      rows: [
+        ["Date of birth", displayDate(answers.dob, "Not recorded")],
+        ["Gender / pronouns", [answers.gender, answers.pronouns].filter(Boolean).join(" · ") || "Not recorded"],
+        ["Room", answers.roomAssignment || admission?.room],
+        ["Admission date", displayDate(answers.admissionDate || admission?.admittedAt, "Pending")],
+        ["Referral source", answers.referralSource],
+        ["Portal email", answers.email || admission?.email],
+      ],
+    },
+    {
+      title: "Clinical overview",
+      icon: Stethoscope,
+      rows: [
+        ["Primary diagnoses", listText(answers.primaryDiagnoses, (d) => d?.text)],
+        ["Conditions", listText(answers.conditions)],
+        ["Allergies", `${countFilled(answers.allergies, (x) => x?.allergen)} recorded`],
+        ["Medications", `${countFilled(answers.medications, (x) => x?.medication)} recorded`],
+      ],
+    },
+    {
+      title: "Functional & behavioral",
+      icon: HeartPulse,
+      rows: [
+        ["Mobility", answers.mobility],
+        ["Communication", answers.communication],
+        ["Observation level", answers.observationLevel],
+        ["Behavioral concerns", listText(answers.behavioralConcerns)],
+      ],
+    },
+    {
+      title: "Care plan & directives",
+      icon: ClipboardList,
+      rows: [
+        ["Goals / interventions", `${countFilled(answers.goals, (g) => g?.text)} / ${countFilled(answers.interventions, (i) => i?.text)}`],
+        ["Restrictions", listText(answers.restrictions, (r) => r?.text)],
+        ["DNR status", answers.dnrStatus],
+        ["Advance directive", answers.advanceDirectiveExists],
+        ["Documents uploaded", answers.documentCount ? `${answers.documentCount} file${answers.documentCount === 1 ? "" : "s"}` : "None"],
+      ],
+    },
+  ];
+
+  return (
+    <Panel title="Admission packet summary" pad>
+      <div style={{ fontSize: 12, color: "var(--cx-muted)", marginBottom: 12 }}>
+        {fieldsStored} fields captured · submitted {displayDate(admission?.submittedAt, "recently")}
+      </div>
+      <div className="cx-grid">
+        {groups.map((group) => {
+          const Icon = group.icon;
+          return (
+            <div key={group.title} className="cx-card" style={{ padding: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><Icon size={14} /></span>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--cx-ink)" }}>{group.title}</div>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {group.rows.map(([label, value]) => (
+                  <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12.5 }}>
+                    <span style={{ color: "var(--cx-muted)" }}>{label}</span>
+                    <span style={{ fontWeight: 600, color: "var(--cx-ink)", textAlign: "right" }}>{value || "—"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
   );
 }
 
@@ -138,6 +226,16 @@ export default function ResidentDetailPage() {
   const latestAdmission = admissions[0] || null;
   const currentTab = useMemo(() => TABS.find((item) => item.id === tab) || TABS[0], [tab]);
 
+  function downloadAdmissionForm() {
+    if (!latestAdmission) return;
+    const ok = openAdmissionFormPrint(resident, latestAdmission);
+    if (!ok) {
+      // Popup blocked — surface a hint rather than failing silently.
+      // eslint-disable-next-line no-alert
+      window.alert("Allow pop-ups for this site to download the admission form.");
+    }
+  }
+
   if (loading) {
     return (
       <div className="cx-wide">
@@ -169,7 +267,20 @@ export default function ResidentDetailPage() {
         eyebrow="Resident profile"
         title={resident.name}
         lede="Resident details and admission records pulled from the facility database."
-        action={<Badge tone={resident.status ? statusTone(resident.status) : "blue"} dot>{resident.status}</Badge>}
+        action={(
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Badge tone={resident.status ? statusTone(resident.status) : "blue"} dot>{resident.status}</Badge>
+            <button
+              type="button"
+              className="cx-btn cx-btn-primary"
+              onClick={downloadAdmissionForm}
+              disabled={!latestAdmission}
+              title={latestAdmission ? "Download the admission form as PDF" : "No admission packet on file"}
+            >
+              <Download size={15} /> Download admission form
+            </button>
+          </div>
+        )}
       />
 
       <div className="cx-panel" style={{ padding: 20, marginBottom: 18 }}>
@@ -220,15 +331,43 @@ export default function ResidentDetailPage() {
 
       <div role="tabpanel" aria-label={currentTab.label}>
         {tab === "overview" && (
-          <div className="cx-cols">
-            <AdmissionSummary admission={latestAdmission} />
-            <Panel title="At a glance">
-              <div className="cx-feed">
-                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><Pill size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Medication summary</div><div className="cx-feed-s">{resident.medications?.length || 0} overview item{(resident.medications?.length || 0) === 1 ? "" : "s"}</div></div></div>
-                <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><FileText size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Admissions</div><div className="cx-feed-s">{admissions.length} stored admission record{admissions.length === 1 ? "" : "s"}</div></div></div>
+          latestAdmission ? (
+            <div className="cx-cols">
+              <div style={{ display: "grid", gap: 18 }}>
+                <EmergencyContact answers={latestAdmission.answers || {}} />
+                <AdmissionPacketSummary admission={latestAdmission} />
               </div>
+              <div style={{ display: "grid", gap: 18 }}>
+                <Panel title="Admission packet" pad>
+                  <div className="cx-feed">
+                    <div className="cx-feed-item">
+                      <span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><FileText size={15} /></span>
+                      <div className="cx-feed-main">
+                        <div className="cx-feed-t">{latestAdmission.status || "submitted"}</div>
+                        <div className="cx-feed-s">Submitted {displayDate(latestAdmission.submittedAt, "recently")}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" className="cx-btn cx-btn-primary" style={{ marginTop: 12, width: "100%", justifyContent: "center" }} onClick={downloadAdmissionForm}>
+                    <Download size={15} /> Download admission form
+                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: "var(--cx-faint)", fontSize: 12 }}>
+                    <ShieldCheck size={14} color="var(--cx-accent)" /> Opens a print-ready packet — use your browser to Save as PDF.
+                  </div>
+                </Panel>
+                <Panel title="At a glance">
+                  <div className="cx-feed">
+                    <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-accent-soft)", color: "var(--cx-accent)" }}><Pill size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Medications captured</div><div className="cx-feed-s">{countFilled(latestAdmission.answers?.medications, (m) => m?.medication)} on admission packet</div></div></div>
+                    <div className="cx-feed-item"><span className="cx-feed-ico" style={{ background: "var(--cx-paper-2)", color: "var(--cx-muted)" }}><FileText size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">Admissions</div><div className="cx-feed-s">{admissions.length} stored record{admissions.length === 1 ? "" : "s"}</div></div></div>
+                  </div>
+                </Panel>
+              </div>
+            </div>
+          ) : (
+            <Panel title="Overview" pad>
+              <EmptyState icon={ClipboardList} title="No admission packet" note="This resident has no stored admission snapshot yet." />
             </Panel>
-          </div>
+          )
         )}
 
         {tab === "admissions" && (
@@ -236,8 +375,8 @@ export default function ResidentDetailPage() {
             <Panel title="Admission history" pad>
               <AdmissionHistory admissions={admissions} />
             </Panel>
-            <Panel title="Latest snapshot" pad>
-              {latestAdmission ? <AdmissionSummary admission={latestAdmission} /> : <EmptyState icon={ClipboardList} title="No admissions recorded" note="This resident has no admission snapshots yet." />}
+            <Panel title="Latest packet summary" pad>
+              {latestAdmission ? <AdmissionPacketSummary admission={latestAdmission} /> : <EmptyState icon={ClipboardList} title="No admissions recorded" note="This resident has no admission snapshots yet." />}
             </Panel>
           </div>
         )}
