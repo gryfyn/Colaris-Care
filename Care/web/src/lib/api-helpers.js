@@ -1,6 +1,7 @@
 import { AuthError, authErrorResponse, requireUser } from '@/lib/auth-guard.js';
 import { withRequestContext } from '@/lib/db.js';
 import { withPrismaContext } from '@/lib/prisma-context.js';
+import logger from '@/lib/logger.js';
 
 export function jsonError(message, status = 400, code = 'BAD_REQUEST') {
   return Response.json({ error: message, code }, { status });
@@ -24,10 +25,18 @@ export async function withApiContext(request, permission, action, handler) {
       return authErrorResponse(err);
     }
     const status = err?.status || err?.statusCode || 500;
+    if (status >= 500) {
+      logger.error(
+        { err, code: err?.code, detail: err?.detail, where: err?.where, position: err?.position, action },
+        '[withApiContext] handler failure'
+      );
+    }
     return Response.json(
       {
         error: status >= 500 ? 'Internal server error' : err.message,
         code: err?.code || 'API_ERROR',
+        // TEMP DIAGNOSTIC (remove after debugging): surface DB error context
+        debug: status >= 500 ? { message: err?.message, detail: err?.detail, position: err?.position, where: err?.where } : undefined,
       },
       { status }
     );
