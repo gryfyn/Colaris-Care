@@ -146,7 +146,7 @@ export function decryptPHI(encryptedBase64, keyHex, aad = null) {
  * When `aadContext` is supplied (`{ organizationId, facilityId, table, rowId }`)
  * each field is bound to its own AAD via buildAAD(), so ciphertext is pinned to
  * its tenant + row + field. Omit it to encrypt without AAD (faithful to the
- * original DCLLC behavior).
+ * the original reference behavior).
  *
  * @param {object} obj
  * @param {string[]} fields

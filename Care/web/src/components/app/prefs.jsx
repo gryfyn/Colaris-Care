@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 /* ── Navigation registry ───────────────────────────────────────────────
-   Merges Colaris's screens with the DCLLC nav set. Every item is
+   Merges Colaris's screens with an extended nav set. Every item is
    individually toggleable except Settings (pinned). Grouped for clarity. */
 export const NAV_GROUPS = [
   {

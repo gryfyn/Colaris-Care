@@ -10,22 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "queue:status": "node scripts/queue-cli.js status",
-    "queue:team": "node scripts/queue-cli.js team",
-    "queue:next": "node scripts/queue-cli.js next",
-    "queue:complete": "node scripts/queue-cli.js complete",
-    "queue:tokens": "node scripts/queue-cli.js tokens",
-    "queue:help": "node scripts/queue-cli.js help",
-    "dispatch:status": "node scripts/dispatcher-cli.js status",
-    "dispatch:teams": "node scripts/dispatcher-cli.js teams",
-    "dispatch:next": "node scripts/dispatcher-cli.js dispatch",
-    "dispatch:resume": "node scripts/dispatcher-cli.js resume",
-    "dispatch:help": "node scripts/dispatcher-cli.js help",
-    "teams:dashboard": "node scripts/teams-cli.js dashboard",
-    "teams:watch": "node scripts/teams-cli.js watch",
-    "teams:summary": "node scripts/teams-cli.js summary",
-    "teams:tokens": "node scripts/teams-cli.js tokens",
-    "teams:quick": "node scripts/teams-cli.js quick"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

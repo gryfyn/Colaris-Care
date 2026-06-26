@@ -20,7 +20,7 @@ export default function DashboardPage() {
     Promise.all([
       apiData("/api/v1/residents").catch(() => []),
       apiData("/api/v1/staff").catch(() => []),
-      apiData("/api/v1/admission-cases").catch(() => []),
+      apiData("/api/v1/admissions").catch(() => []),
       apiData("/api/v1/incidents").catch(() => []),
       apiData("/api/v1/progress-notes").catch(() => []),
     ]).then(([residents, staff, admissions, incidents, notes]) => {

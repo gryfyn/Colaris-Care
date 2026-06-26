@@ -32,7 +32,7 @@ async function apiRequest(path, options, allowRefresh) {
 export function statusTone(status) {
   const normalized = String(status || "").toLowerCase();
   if (["active", "current", "given", "administered", "completed", "published", "success", "confirmed"].includes(normalized)) return "green";
-  if (["pending", "review due", "due soon", "open", "under_review", "due", "scheduled", "recorded"].includes(normalized)) return "amber";
+  if (["pending", "submitted", "review due", "due soon", "open", "under_review", "due", "scheduled", "recorded"].includes(normalized)) return "amber";
   if (["draft", "discontinued", "discharged", "archived", "cancelled", "closed", "read"].includes(normalized)) return "gray";
   if (["missed", "refused", "critical", "denied", "failure"].includes(normalized)) return "red";
   return "blue";

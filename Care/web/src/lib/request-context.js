@@ -1,6 +1,6 @@
 // Per-request tenant / user context.
 //
-// In the DCLLC reference this module simply re-exported getRequestContext from
+// Previously this module simply re-exported getRequestContext from
 // lib/auth-guard.js. That guard also pulls in RBAC (roles) and a Redis-backed
 // token blacklist, which belong to the later RBAC / auth-API tasks — so to keep
 // this lib-foundation task self-contained, the dependency-free context builder

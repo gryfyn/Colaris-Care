@@ -1,6 +1,6 @@
 import { PageHeader, EmptyState } from "@/components/ui/data";
 
-/* Consistent shell for modules brought over from the DCLLC nav that don't have
+/* Consistent shell for modules brought over from the extended nav that don't have
    full screens yet. Honest empty state in the Colaris design language. */
 export default function ModulePage({ eyebrow, title, lede, icon, note, actionLabel }) {
   return (

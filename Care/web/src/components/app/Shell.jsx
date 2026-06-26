@@ -25,7 +25,10 @@ const SUBS = {
   "evacuation-drills": "Emergency readiness",
 };
 
-const ADMIN = { name: "Amara Koch", role: "Administrator", initials: "AK" };
+// Neutral placeholder used before the auth store hydrates or when there is no
+// session. No sample identity — the real name/initials come from the logged-in
+// user (see `identity` below).
+const ADMIN = { name: "", role: "Administrator", initials: "" };
 
 const ROLE_LABELS = {
   admin: "Administrator", superadmin: "Administrator", manager: "Manager",
@@ -62,7 +65,7 @@ export default function Shell({ children }) {
   // user cannot view this admin shell from the back/forward cache.
   useAuthGuard("admin");
 
-  // Custom JS-driven scroll indicator for the sidebar nav (replicates DCLLC).
+  // Custom JS-driven scroll indicator for the sidebar nav (custom sidebar scroll indicator).
   const navRef = useRef(null);
   const menuRef = useRef(null);
   const avatarBtnRef = useRef(null);
@@ -217,7 +220,7 @@ export default function Shell({ children }) {
                 <button className="cx-facility" type="button">
                   <span className="cx-dot" />
                   <Building2 size={14} strokeWidth={1.9} />
-                  Maple Grove
+                  Facility
                   <ChevronDown size={14} strokeWidth={2} />
                 </button>
               )}

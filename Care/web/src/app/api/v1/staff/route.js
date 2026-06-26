@@ -1,5 +1,6 @@
 import { PERMISSIONS } from '@/lib/roles.js';
 import { readJson, withApiContext } from '@/lib/api-helpers.js';
+import { buildPortalCredentialNotice } from '@/lib/portal-credentials.js';
 
 function mapStaff(row) {
   return {
@@ -55,6 +56,12 @@ export async function POST(request) {
         body.status || 'active',
       ]
     );
-    return mapStaff(rows[0]);
+    const staff = mapStaff(rows[0]);
+    const adminNotification = buildPortalCredentialNotice({
+      email: staff.email,
+      name: staff.name,
+      portal: 'staff',
+    });
+    return adminNotification ? { ...staff, adminNotification } : staff;
   });
 }

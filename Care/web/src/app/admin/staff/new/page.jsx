@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Contact,
   IdCard,
+  Loader2,
   Phone,
   Plus,
   ShieldCheck,
@@ -23,6 +24,7 @@ import {
   TextAreaField,
   TextField,
 } from "@/components/ui/fields";
+import { apiData } from "@/lib/client-api";
 
 const ROLES = [
   "Registered nurse",
@@ -97,10 +99,59 @@ function SectionIntro({ icon: Icon, title, note }) {
 export default function AddStaffPage() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [credentials, setCredentials] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [adminNotification, setAdminNotification] = useState(null);
+  const [message, setMessage] = useState("");
 
-  const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const set = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    if (errors[key]) setErrors((current) => ({ ...current, [key]: undefined }));
+  };
   const displayName = [form.preferredName || form.firstName, form.lastName].filter(Boolean).join(" ") || "New staff member";
   const permissions = useMemo(() => PERMISSIONS[form.role] || [], [form.role]);
+
+  const validate = () => {
+    const nextErrors = {};
+    if (!form.firstName.trim()) nextErrors.firstName = "Required";
+    if (!form.lastName.trim()) nextErrors.lastName = "Required";
+    if (!form.role) nextErrors.role = "Required";
+    if (!form.email.trim()) nextErrors.email = "Required";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!validate()) return;
+
+    setSaving(true);
+    setMessage("");
+    setAdminNotification(null);
+    const status = form.status === "Inactive" ? "inactive" : "active";
+    const employeeNumber = form.employeeId.trim() || `STAFF-${Date.now().toString(36).toUpperCase()}`;
+
+    try {
+      const staff = await apiData("/api/v1/staff", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          roleTitle: form.role,
+          employeeNumber,
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          status,
+        }),
+      });
+      setAdminNotification(staff.adminNotification || null);
+      setMessage(`${staff.name || displayName} has been added to the staff directory.`);
+    } catch (error) {
+      setMessage(error.message || "Unable to add staff member.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleCredential = (label) => {
     setCredentials((current) => current.some((item) => item.label === label)
@@ -172,7 +223,7 @@ export default function AddStaffPage() {
         lede="Create the complete work profile used across the staff portal. Required fields and submission will be connected when the staff API is ready."
       />
 
-      <form className="as-stack" onSubmit={(event) => event.preventDefault()}>
+      <form className="as-stack" onSubmit={submit}>
         <Panel pad>
           <div className="as-preview">
             <Avatar name={displayName} round />
@@ -189,11 +240,11 @@ export default function AddStaffPage() {
         <Panel>
           <SectionIntro icon={UserRound} title="Core identity" note="Legal identity, display preferences, role, and staff status." />
           <div className="cx-grid as-form-grid">
-            <TextField label="First name" required value={form.firstName} onChange={(value) => set("firstName", value)} placeholder="First name" />
-            <TextField label="Last name" required value={form.lastName} onChange={(value) => set("lastName", value)} placeholder="Last name" />
+            <TextField label="First name" required value={form.firstName} onChange={(value) => set("firstName", value)} placeholder="First name" error={errors.firstName} />
+            <TextField label="Last name" required value={form.lastName} onChange={(value) => set("lastName", value)} placeholder="Last name" error={errors.lastName} />
             <TextField label="Preferred / display name" optional value={form.preferredName} onChange={(value) => set("preferredName", value)} placeholder="If different from legal name" />
             <SelectField label="Pronouns" optional value={form.pronouns} onChange={(value) => set("pronouns", value)} options={["She / her", "He / him", "They / them", "Other / not specified"]} />
-            <SelectField label="Role" required value={form.role} onChange={(value) => set("role", value)} options={ROLES} />
+            <SelectField label="Role" required value={form.role} onChange={(value) => set("role", value)} options={ROLES} error={errors.role} />
             <TextField label="Employee ID" value={form.employeeId} onChange={(value) => set("employeeId", value)} placeholder="EMP-10482" />
             <SegmentedField label="Status" span2 value={form.status} onChange={(value) => value && set("status", value)} options={["Active", "Inactive", { value: "On leave", label: "On leave", tone: "amber" }]} />
           </div>
@@ -214,7 +265,7 @@ export default function AddStaffPage() {
         <Panel>
           <SectionIntro icon={Contact} title="Contact & employment" note="Work contact information and current employment arrangement." />
           <div className="cx-grid as-form-grid">
-            <TextField label="Work email" type="email" value={form.email} onChange={(value) => set("email", value)} placeholder="name@facility.example" />
+            <TextField label="Work email" required type="email" value={form.email} onChange={(value) => set("email", value)} placeholder="name@facility.example" error={errors.email} />
             <TextField label="Work phone" type="tel" value={form.phone} onChange={(value) => set("phone", value)} placeholder="(555) 200-0140" />
             <SelectField label="Employment type" value={form.employmentType} onChange={(value) => set("employmentType", value)} options={["Full-time", "Part-time", "Per diem", "Contract", "Temporary"]} />
             <SelectField label="Assigned shift" value={form.shift} onChange={(value) => set("shift", value)} options={["Day shift", "Evening shift", "Night shift", "Swing shift", "Variable"]} />
@@ -285,15 +336,26 @@ export default function AddStaffPage() {
             <span className="as-section-icon"><IdCard size={16} /></span>
             <div className="as-preview-copy">
               <div className="as-preview-name" style={{ fontSize: 14 }}>Profile coverage</div>
-              <div className="as-preview-role">Identity, contact, placement, employment, emergency contact, credentials, access, and notes are captured.</div>
+              <div className="as-preview-role">{message || "Identity, contact, placement, employment, emergency contact, credentials, access, and notes are captured."}</div>
             </div>
             <div className="as-actions">
               <Link href="/admin/staff" className="cx-btn cx-btn-ghost" style={{ textDecoration: "none" }}>Cancel</Link>
-              <button type="submit" className="cx-btn cx-btn-primary" disabled title="Staff creation is not connected yet">
-                <Plus size={15} /> Add staff · coming soon
+              <button type="submit" className="cx-btn cx-btn-primary" disabled={saving}>
+                {saving ? <><Loader2 size={15} className="cx-spin" /> Adding...</> : <><Plus size={15} /> Add staff</>}
               </button>
             </div>
           </div>
+          {adminNotification && (
+            <div className="cx-credential-card" role="status" aria-live="polite" style={{ maxWidth: "none", margin: "14px 0 0" }}>
+              <strong>Admin notification</strong>
+              <span>{adminNotification.title}</span>
+              <div className="cx-credential-notice">
+                <b>Generated staff portal credentials</b>
+                <code>{adminNotification.loginEmail}</code>
+                <code>{adminNotification.temporaryPassword}</code>
+              </div>
+            </div>
+          )}
         </Panel>
       </form>
     </div>

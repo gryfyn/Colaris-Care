@@ -408,7 +408,7 @@ img, video, canvas { height: auto; }
   --cx-danger:#B4145A; --cx-danger-soft:#FCE7F1;
   --cx-r:12px; --cx-ring:0 0 0 3px rgba(14,124,102,.16);
   --cx-shadow:0 1px 2px rgba(16,32,27,.04), 0 12px 32px -18px rgba(16,32,27,.22);
-  /* Sidebar nav scrollbar (DCLLC styling): light slate thumb, darker on hover.
+  /* Sidebar nav scrollbar: light slate thumb, darker on hover.
      Overridden per dark theme below so the thumb stays subtle, not glaring. */
   --cx-scroll-thumb:#cbd5e1; --cx-scroll-thumb-hover:#94a3b8;
   font-family:var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -441,7 +441,7 @@ img, video, canvas { height: auto; }
 .cx-nav-scroll { position:relative; flex:1; min-height:0; }
 .cx-nav { position:absolute; inset:0; padding:6px 12px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -ms-overflow-style:none; }
 .cx-nav::-webkit-scrollbar { display:none; }
-/* Custom JS-driven scroll indicator (replicates DCLLC StaffNavigation). */
+/* Custom JS-driven scroll indicator. */
 .cx-nav-rail { position:absolute; right:4px; top:10px; bottom:10px; width:3px; border-radius:2px;
   background:color-mix(in srgb, var(--cx-rail, var(--cx-accent)) 16%, transparent); pointer-events:none; z-index:3; }
 .cx-nav-thumb { position:absolute; left:0; width:3px; border-radius:2px;
@@ -670,6 +670,13 @@ img, video, canvas { height: auto; }
   place-items:center; background:var(--cx-accent-soft); color:var(--cx-accent); }
 .cx-done h2 { font-size:21px; font-weight:700; letter-spacing:-.02em; margin-bottom:8px; }
 .cx-done p { font-size:13.5px; color:var(--cx-muted); line-height:1.6; margin-bottom:22px; }
+.cx-credential-card { display:grid; gap:8px; max-width:420px; margin:0 auto 22px; padding:14px; text-align:left; background:var(--cx-paper); border:1px solid var(--cx-border); border-radius:10px; }
+.cx-credential-card > strong { color:var(--cx-ink); font-size:14px; }
+.cx-credential-card > span { color:var(--cx-muted); font-size:12.5px; }
+.cx-credential-notice { display:grid; gap:6px; margin-top:4px; padding:12px; background:var(--cx-accent-soft); border:1px solid color-mix(in srgb,var(--cx-accent) 30%,transparent); border-radius:9px; }
+.cx-credential-notice b { color:var(--cx-accent-strong); font-size:12.5px; }
+.cx-credential-notice span { color:var(--cx-muted); font-size:12px; line-height:1.4; }
+.cx-credential-notice code { display:block; overflow-wrap:anywhere; color:var(--cx-ink); background:var(--cx-paper); border:1px solid var(--cx-border-soft); border-radius:7px; padding:7px 9px; font-size:12px; }
 
 .cx-spin { animation:cx-spin 0.7s linear infinite; }
 @keyframes cx-spin { to { transform:rotate(360deg); } }
@@ -1115,7 +1122,7 @@ img, video, canvas { height: auto; }
 }
 /* Sidebar nav scrollbar on dark themes: the fixed light slate (#cbd5e1) reads as
    a glaring bar against dark paper, so use theme-aware tones — a subtle muted
-   thumb that brightens on hover (the dark-mode analog of DCLLC's darker-on-hover).
+   thumb that brightens on hover (the dark-mode analog of the darker-on-hover style).
    Keeps the 5px width + 4px radius + transparent track from the base rule. */
 .cx-app:is([data-theme="graphite"], [data-theme="midnight"], [data-theme="obsidian"], [data-theme="nocturne"], [data-theme="mulberry"]) {
   --cx-scroll-thumb:var(--cx-faint); --cx-scroll-thumb-hover:var(--cx-muted);

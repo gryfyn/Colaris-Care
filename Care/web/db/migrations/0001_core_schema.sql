@@ -399,6 +399,30 @@ create table if not exists care.admission_cases (
   unique (organization_id, facility_id, case_number)
 );
 
+create table if not exists care.admissions (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null,
+  facility_id uuid not null,
+  resident_id uuid not null,
+  admission_case_id uuid,
+  status text not null default 'submitted' check (status in ('submitted', 'accepted', 'declined', 'closed')),
+  candidate_first_name text not null,
+  candidate_last_name text not null,
+  email text,
+  room text,
+  care_level text,
+  admitted_at date,
+  submitted_at timestamptz not null default now(),
+  answers jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  created_by uuid,
+  updated_at timestamptz not null default now(),
+  updated_by uuid,
+  foreign key (organization_id, facility_id) references care.facilities(organization_id, id),
+  foreign key (organization_id, facility_id, resident_id) references care.residents(organization_id, facility_id, id),
+  unique (organization_id, facility_id, resident_id)
+);
+
 create table if not exists care.roi_records (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null,
@@ -484,6 +508,8 @@ create table if not exists care.idempotency_records (
 
 create index if not exists care_residents_scope_status_idx
   on care.residents(organization_id, facility_id, status, updated_at desc);
+create index if not exists care_admissions_resident_idx
+  on care.admissions(organization_id, facility_id, resident_id, submitted_at desc);
 create index if not exists care_care_plans_resident_idx
   on care.care_plans(organization_id, facility_id, resident_id, updated_at desc);
 create index if not exists care_progress_notes_resident_idx
@@ -516,6 +542,7 @@ alter table care.announcements enable row level security;
 alter table care.appointments enable row level security;
 alter table care.documents enable row level security;
 alter table care.admission_cases enable row level security;
+alter table care.admissions enable row level security;
 alter table care.roi_records enable row level security;
 alter table care.discharge_records enable row level security;
 alter table audit_log.audit_events enable row level security;
@@ -603,6 +630,10 @@ create policy documents_scope on care.documents
   with check (organization_id = app.current_organization_id() and facility_id = app.current_facility_id());
 
 create policy admission_cases_scope on care.admission_cases
+  using (organization_id = app.current_organization_id() and facility_id = app.current_facility_id())
+  with check (organization_id = app.current_organization_id() and facility_id = app.current_facility_id());
+
+create policy admissions_scope on care.admissions
   using (organization_id = app.current_organization_id() and facility_id = app.current_facility_id())
   with check (organization_id = app.current_organization_id() and facility_id = app.current_facility_id());
 

@@ -216,7 +216,7 @@ Follow these rules while the app is still frontend/demo-data focused:
 1. Preserve the existing Colaris UI language and shell layout.
 2. Do not replace the UI with generic templates.
 3. Keep admin and staff workflows consistent where they represent the same process.
-4. Maintain route-specific behavior when copying content from the DCLLC reference project.
+4. Maintain route-specific behavior when copying content from the reference project.
 5. Keep submissions disabled or mocked when requested; do not invent backend persistence.
 6. Store shared sample data in component-level data modules when no backend exists yet.
 7. Prefer reusable components for repeated clinical review/forms.

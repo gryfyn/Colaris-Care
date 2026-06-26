@@ -66,6 +66,35 @@ model admission_cases {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model admissions {
+  id                   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id      String     @db.Uuid
+  facility_id          String     @db.Uuid
+  resident_id          String     @db.Uuid
+  admission_case_id    String?    @db.Uuid
+  status               String     @default("submitted")
+  candidate_first_name String
+  candidate_last_name  String
+  email                String?
+  room                 String?
+  care_level           String?
+  admitted_at          DateTime?  @db.Date
+  submitted_at         DateTime   @default(now()) @db.Timestamptz(6)
+  answers              Json       @default("{}")
+  created_at           DateTime   @default(now()) @db.Timestamptz(6)
+  created_by           String?    @db.Uuid
+  updated_at           DateTime   @default(now()) @db.Timestamptz(6)
+  updated_by           String?    @db.Uuid
+  facilities           facilities @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)
+  residents            residents  @relation(fields: [organization_id, facility_id, resident_id], references: [organization_id, facility_id, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([organization_id, facility_id, resident_id])
+  @@index([organization_id, facility_id, resident_id, submitted_at(sort: Desc)], map: "care_admissions_resident_idx")
+  @@schema("care")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model announcements {
   id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organization_id String     @db.Uuid
@@ -221,6 +250,7 @@ model facilities {
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   updated_at           DateTime               @default(now()) @db.Timestamptz(6)
   admission_cases      admission_cases[]
+  admissions           admissions[]
   announcements        announcements[]
   appointments         appointments[]
   documents            documents[]
@@ -503,6 +533,7 @@ model residents {
   incident_reports           incident_reports[]
   medication_administrations medication_administrations[]
   medications                medications[]
+  admissions                 admissions[]
   progress_notes             progress_notes[]
   resident_requests          resident_requests[]
   facilities                 facilities                   @relation(fields: [organization_id, facility_id], references: [organization_id, id], onDelete: NoAction, onUpdate: NoAction)

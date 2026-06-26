@@ -155,10 +155,10 @@ export default function Error({ error, reset }) {
           <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
             Need help? Contact us at{' '}
             <a
-              href="mailto:support@dependablecare.org"
+              href="mailto:support@colaris.care"
               style={{ color: '#10b981', textDecoration: 'none' }}
             >
-              support@dependablecare.org
+              support@colaris.care
             </a>
           </p>
         </div>

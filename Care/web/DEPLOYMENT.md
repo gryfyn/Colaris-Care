@@ -1,4 +1,4 @@
-# Deployment Guide — Dependable Care
+# Deployment Guide — Colaris Care
 
 This app needs two things running together: **PostgreSQL** and the
 **Next.js app** (with RS256 JWT keys + a PHI encryption key). The supported,

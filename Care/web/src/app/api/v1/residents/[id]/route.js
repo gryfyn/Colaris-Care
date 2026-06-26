@@ -10,6 +10,7 @@ import {
   lookupHashPHI,
   PHI_CIPHER_VERSION,
 } from '@/lib/encryption.js';
+import { mapAdmissions } from '@/lib/admissions.js';
 
 const SSN_FIELD = 'ssn_last4';
 
@@ -70,7 +71,22 @@ export async function GET(request, { params }) {
     const tenantKey = rows[0].ssn_last4_ciphertext
       ? await getTenantKey(user.organizationId, user.facilityId)
       : null;
-    return maskPHI(mapResident(rows[0], tenantKey), user.role);
+    const resident = maskPHI(mapResident(rows[0], tenantKey), user.role);
+    const { rows: admissions } = await client.query(
+      `
+        select a.id, a.resident_id, a.admission_case_id, a.status, a.candidate_first_name,
+               a.candidate_last_name, a.email, a.room, a.care_level, a.admitted_at,
+               a.submitted_at, a.updated_at, a.answers
+          from care.admissions a
+         where a.organization_id = $1
+           and a.facility_id = $2
+           and a.resident_id = $3
+         order by a.submitted_at desc, a.updated_at desc
+         limit 20
+      `,
+      [user.organizationId, user.facilityId, params.id]
+    );
+    return { ...resident, admissions: mapAdmissions(admissions) };
   });
 }
 

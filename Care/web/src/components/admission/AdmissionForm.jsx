@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Check, Loader2, Plus, ShieldCheck, UploadCloud, X } from "lucide-react";
 import {
   Field,
@@ -9,6 +10,7 @@ import {
   TextAreaField,
   SegmentedField,
 } from "@/components/ui/fields";
+import { apiData, displayDate } from "@/lib/client-api";
 
 const CONDITION_OPTIONS = [
   "Diabetes",
@@ -198,6 +200,9 @@ export default function AdmissionForm() {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [createdResident, setCreatedResident] = useState(null);
+  const [createdAdmission, setCreatedAdmission] = useState(null);
+  const [adminNotification, setAdminNotification] = useState(null);
   const [toast, setToast] = useState("");
 
   const set = (key) => (value) => {
@@ -215,7 +220,7 @@ export default function AdmissionForm() {
   const documentCount = Object.values(v.documents).filter(Boolean).length + (v.photo ? 1 : 0);
 
   const complete = {
-    1: Boolean(v.firstName && v.lastName && v.dob && v.gender && v.emergencyName && v.emergencyPhone && v.admissionDate && v.facility && v.roomAssignment),
+    1: Boolean(v.firstName && v.lastName && v.email && v.dob && v.gender && v.emergencyName && v.emergencyPhone && v.admissionDate && v.facility && v.roomAssignment),
     2: Boolean(v.primaryDiagnoses.some((item) => item.text) || v.secondaryDiagnoses.some((item) => item.text) || v.conditions.length || v.medications.some((med) => med.medication)),
     3: Boolean(v.mobility && ADL_ITEMS.every((item) => v.adls[item]) && v.communication),
     4: Boolean(v.observationLevel || v.behavioralConcerns.length || v.mentalHealthDiagnoses.some((item) => item.text)),
@@ -247,10 +252,58 @@ export default function AdmissionForm() {
     setV((state) => ({ ...state, documents: { ...state.documents, [type]: file } }));
   }
 
+  function serializeAdmissionPayload() {
+    return {
+      firstName: v.firstName.trim(),
+      middleName: v.middleName.trim(),
+      lastName: v.lastName.trim(),
+      preferredName: v.preferredName.trim(),
+      dob: v.dob,
+      gender: v.gender,
+      pronouns: v.pronouns,
+      phone: v.phone.trim(),
+      email: v.email.trim(),
+      currentAddress: v.currentAddress.trim(),
+      emergencyName: v.emergencyName.trim(),
+      emergencyRelationship: v.emergencyRelationship.trim(),
+      emergencyPhone: v.emergencyPhone.trim(),
+      emergencyEmail: v.emergencyEmail.trim(),
+      admissionDate: v.admissionDate,
+      expectedDischarge: v.expectedDischarge,
+      facility: v.facility.trim(),
+      roomAssignment: v.roomAssignment.trim(),
+      referralSource: v.referralSource,
+      caseManager: v.caseManager.trim(),
+      primaryDiagnoses: v.primaryDiagnoses,
+      secondaryDiagnoses: v.secondaryDiagnoses,
+      allergies: v.allergies,
+      conditions: v.conditions,
+      medications: v.medications,
+      mobility: v.mobility,
+      adls: v.adls,
+      communication: v.communication,
+      mentalHealthDiagnoses: v.mentalHealthDiagnoses,
+      behavioralConcerns: v.behavioralConcerns,
+      observationLevel: v.observationLevel,
+      goals: v.goals,
+      interventions: v.interventions,
+      restrictions: v.restrictions,
+      advanceDirectiveExists: v.advanceDirectiveExists,
+      healthCareAgent: v.healthCareAgent.trim(),
+      healthCareAgentPhone: v.healthCareAgentPhone.trim(),
+      dnrStatus: v.dnrStatus,
+      preferredHospital: v.preferredHospital.trim(),
+      advanceDirectiveUploaded: v.advanceDirectiveUploaded,
+      documentCount,
+      documentNames: Object.fromEntries(Object.entries(v.documents).map(([key, file]) => [key, file?.name || null])),
+    };
+  }
+
   function validate() {
     const nextErrors = {};
     if (!v.firstName.trim()) nextErrors.firstName = "Required";
     if (!v.lastName.trim()) nextErrors.lastName = "Required";
+    if (!v.email.trim()) nextErrors.email = "Required";
     if (!v.dob) nextErrors.dob = "Required";
     if (!v.gender) nextErrors.gender = "Required";
     if (!v.emergencyName.trim()) nextErrors.emergencyName = "Required";
@@ -263,7 +316,7 @@ export default function AdmissionForm() {
     return Object.keys(nextErrors).length === 0;
   }
 
-  function onSave() {
+  async function onSave() {
     if (!validate()) {
       const first = document.querySelector('.cx-field[data-error="true"]');
       first?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -271,31 +324,65 @@ export default function AdmissionForm() {
     }
 
     setSaving(true);
-    setTimeout(() => {
+    setToast("");
+    try {
+      const result = await apiData("/api/v1/admissions", {
+        method: "POST",
+        body: JSON.stringify(serializeAdmissionPayload()),
+      });
+      setCreatedResident(result.resident || null);
+      setCreatedAdmission(result.admission || null);
+      setAdminNotification(result.adminNotification || null);
       setSaving(false);
       setDone(true);
-    }, 850);
+    } catch (error) {
+      setSaving(false);
+      setToast(error.message || "Unable to submit admission.");
+    }
   }
 
   function saveDraft() {
-    setToast("Draft captured locally. Backend submission is not wired yet.");
+    setToast("Draft captured locally. Use Submit to persist the admission record.");
     setTimeout(() => setToast(""), 2600);
   }
 
   if (done) {
+    const resident = createdResident || {};
+    const admission = createdAdmission || {};
     return (
       <div className="cx-page">
         <div className="cx-done">
           <div className="cx-done-mark"><Check size={30} strokeWidth={2.5} /></div>
-          <h2>Admission packet captured</h2>
+          <h2>Admission submitted</h2>
           <p>
-            {fullName || "The resident"} has a complete draft admission packet. Document storage and final
-            submission are ready to connect to Cloudflare R2 and the backend when that milestone starts.
+            {resident.name || fullName || "The resident"} has been created and the admission record is ready in the resident profile.
           </p>
+          <div className="cx-credential-card" role="status" aria-live="polite">
+            <strong>{resident.name || fullName || "Created resident"}</strong>
+            <span>Room {resident.room || v.roomAssignment || "pending"} - {displayDate(resident.admittedAt || admission.admittedAt || v.admissionDate)}</span>
+            {admission.id && (
+              <div className="cx-credential-notice">
+                <b>Admission record</b>
+                <span>{admission.status || "submitted"} - {displayDate(admission.submittedAt || admission.updatedAt, "Recent")}</span>
+                <code>{admission.room || v.roomAssignment || "Room pending"}</code>
+              </div>
+            )}
+            {adminNotification && (
+              <div className="cx-credential-notice">
+                <b>Admin notification</b>
+                <span>{adminNotification.title}</span>
+                <code>{adminNotification.loginEmail}</code>
+                <code>{adminNotification.temporaryPassword}</code>
+              </div>
+            )}
+          </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="cx-btn cx-btn-primary" onClick={() => { setV(EMPTY); setDone(false); }}>
+            <button className="cx-btn cx-btn-primary" onClick={() => { setV(EMPTY); setDone(false); setCreatedResident(null); setCreatedAdmission(null); setAdminNotification(null); }}>
               New admission
             </button>
+            <Link href="/admin/residents" className="cx-btn cx-btn-ghost" style={{ textDecoration: "none" }}>
+              Open residents
+            </Link>
             <button className="cx-btn cx-btn-ghost" onClick={() => setDone(false)}>
               Review packet
             </button>
@@ -352,7 +439,7 @@ export default function AdmissionForm() {
 
           <div className="cx-subhead">Contact Information</div>
           <TextField label="Phone Number" type="tel" value={v.phone} onChange={set("phone")} />
-          <TextField label="Email" type="email" value={v.email} onChange={set("email")} />
+          <TextField label="Email" required type="email" value={v.email} onChange={set("email")} error={errors.email} />
           <TextAreaField label="Current Address" value={v.currentAddress} onChange={set("currentAddress")} placeholder="Street, city, state, ZIP" />
 
           <div className="cx-subhead">Emergency Contact</div>
@@ -600,13 +687,13 @@ export default function AdmissionForm() {
       <div className="cx-actionbar">
         <span className="cx-ab-info">
           <ShieldCheck size={15} strokeWidth={2} color="#0E7C66" />
-          {toast || "Admission packet only. Final persistence and R2 uploads are not wired yet."}
+          {toast || "Submit creates the resident and admission records. Uploaded files remain local until R2 storage is wired."}
         </span>
         <span className="cx-ab-spacer" />
         <button className="cx-btn cx-btn-quiet" type="button" onClick={() => setV(EMPTY)}>Clear</button>
         <button className="cx-btn cx-btn-ghost" type="button" onClick={saveDraft}>Save draft</button>
         <button className="cx-btn cx-btn-primary" type="button" onClick={onSave} disabled={saving}>
-          {saving ? <><Loader2 size={15} className="cx-spin" /> Capturing…</> : <>Capture admission packet</>}
+          {saving ? <><Loader2 size={15} className="cx-spin" /> Submitting...</> : <>Submit</>}
         </button>
       </div>
     </div>

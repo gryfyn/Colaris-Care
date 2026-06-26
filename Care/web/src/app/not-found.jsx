@@ -115,10 +115,10 @@ export default function NotFound() {
           <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
             If you believe this is an error, please contact support at{' '}
             <a
-              href="mailto:support@dependablecare.org"
+              href="mailto:support@colaris.care"
               style={{ color: '#10b981', textDecoration: 'none' }}
             >
-              support@dependablecare.org
+              support@colaris.care
             </a>
           </p>
         </div>

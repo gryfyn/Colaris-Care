@@ -1,8 +1,10 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Monorepo root — patterns are intentionally un-anchored so they match every
+# workspace (Care/web, Workforce/web, shared, mobile/*).
 
 # dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -11,18 +13,37 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
-# production
-/build
+# production builds
+build/
+dist/
+
+# expo / react-native
+.expo/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+*.orig.*
+
+# native ios/android build output
+ios/build/
+ios/Pods/
+android/.gradle/
+android/app/build/
 
 # misc
 .DS_Store
 *.pem
+
+# secrets
+secrets/
 
 # debug
 npm-debug.log*
@@ -32,6 +53,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -40,15 +62,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# session logs (ephemeral data)
+# session logs / ephemeral dev artifacts
 .session-log.json
-
-.vercel
-
-# ephemeral dev / test / deploy artifacts
 .dev-server*.log
 .playwright-mcp/
 test-results/
 playwright-report/
-scripts/_e2e_shots/
+**/scripts/_e2e_shots/
 .tmp-vercel-*

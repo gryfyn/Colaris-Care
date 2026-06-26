@@ -1,6 +1,6 @@
 // Centralized environment access + light validation.
 //
-// Redis URL resolution is inlined here (the DCLLC port keeps Redis optional —
+// Redis URL resolution is inlined here (this app keeps Redis optional —
 // rate limiting in Colaris is in-memory, see @/lib/rate-limiter.js). REDIS_URL
 // is still surfaced so later tasks can opt into a shared store without changing
 // this module's shape.

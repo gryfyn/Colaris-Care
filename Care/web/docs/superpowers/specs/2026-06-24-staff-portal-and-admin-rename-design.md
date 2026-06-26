@@ -5,8 +5,8 @@
 **Context:** Colaris Care web app (`D:/Projects/colaris-app/Care/web`, `@colaris/care-web`).
 Everything built so far is actually the **Facility Admin / Manager** portal. This spec
 (a) renames that portal under an `/admin` URL segment and (b) adds a second **Staff** portal
-under `/staff`, modeled on the DCLLC reference app's staff route
-(`D:/Freelance/dcllc/dcllc/src/app/staff/`, read-only inspiration). DCLLC served a single
+under `/staff`, modeled on a reference staff route
+(read-only inspiration). The reference app served a single
 company; Colaris is multi-tenant (serves many), so the staff portal is facility-scoped.
 
 No backend yet — all pages use realistic SAMPLE data, no PHI, shapes mirroring
@@ -49,18 +49,18 @@ No backend yet — all pages use realistic SAMPLE data, no PHI, shapes mirroring
   `STAFF_NAV_GROUPS` in `prefs.jsx` or a dedicated `staffNav.js`). `src/app/staff/layout.js`
   wraps staff pages in PrefsProvider + StaffShell.
 
-**StaffShell** (modeled on DCLLC `StaffNavigation.jsx`, rendered in the `.cx-` design system):
+**StaffShell** (modeled on a reference `StaffNavigation.jsx`, rendered in the `.cx-` design system):
 - Brand header (Colaris logo, clickable → `/staff/dashboard`).
 - **Staff identity card**: avatar/initials, name, role (sample: e.g. "Amara Koch — Caregiver").
 - **Facility-context chip** (read-only): facility + org name (e.g. "Maple Grove Care" /
   tenant org). NO facility switching for staff.
-- **Clock In/Out** control (sample state, toggles a clocked-in indicator like DCLLC).
+- **Clock In/Out** control (sample state, toggles a clocked-in indicator).
 - Grouped nav (Facility / Clinical / Communications / System) using the SAME custom
   scroll-indicator pattern as admin (absolute-inset `.cx-nav`, JS-driven thumb), and the
   collapse/expand toggle + mobile drawer behavior.
 - Theme-aware (works across all 16 themes).
 
-## 3. Staff portal pages (full DCLLC mirror)
+## 3. Staff portal pages (full staff-portal set)
 
 All `.cx-`-styled, sample data, no PHI, facility-scoped. Each list page follows the existing
 list → `/[id]` detail pattern with a local `data.js` where detail views apply.

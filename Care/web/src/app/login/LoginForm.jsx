@@ -1,52 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Building2, CheckCircle2, LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { storeSession } from "@/lib/client-auth";
 import styles from "./login.module.css";
-
-const demoUsers = [
-  {
-    email: "admin@maplegrove.example",
-    password: "ChangeMeAdmin123!",
-    name: "Admin User",
-    role: "admin",
-    facility: "Maple Grove Care",
-    redirect: "/admin/dashboard",
-  },
-  {
-    email: "amara.koch@maplegrove.example",
-    password: "ChangeMeStaff123!",
-    name: "Amara Koch",
-    role: "staff",
-    facility: "Maple Grove Care",
-    redirect: "/staff/dashboard",
-  },
-];
-
-const roleLabel = {
-  admin: "Admin workspace",
-  staff: "Staff workspace",
-};
 
 export default function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const requestedNext = params.get("next") || "";
-  const intent = params.get("intent") || "";
-  const defaultUser = intent === "staff" ? demoUsers[1] : demoUsers[0];
-  const [email, setEmail] = useState(defaultUser.email);
-  const [password, setPassword] = useState(defaultUser.password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const matchedUser = useMemo(
-    () => demoUsers.find((user) => user.email.toLowerCase() === email.trim().toLowerCase()),
-    [email],
-  );
 
   async function submit(event) {
     event.preventDefault();
@@ -67,7 +36,7 @@ export default function LoginForm() {
       }
 
       storeSession({ accessToken: data.accessToken, user: data.user });
-      router.push(data.redirectTo || matchedUser?.redirect || "/staff/dashboard");
+      router.push(data.redirectTo || "/staff/dashboard");
     } catch {
       setError("Unable to reach the sign-in service.");
     } finally {
@@ -106,7 +75,7 @@ export default function LoginForm() {
                   setEmail(event.target.value);
                   setError("");
                 }}
-                placeholder="admin@maplegrove.example"
+                placeholder="you@example.com"
                 autoComplete="email"
                 required
               />
@@ -131,32 +100,12 @@ export default function LoginForm() {
             </div>
           </label>
 
-          {matchedUser && (
-            <div className={styles.identity}>
-              <div className={styles.avatar}>{matchedUser.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</div>
-              <div>
-                <strong>{matchedUser.name}</strong>
-                <span>{roleLabel[matchedUser.role]} - {matchedUser.facility}</span>
-              </div>
-            </div>
-          )}
-
           {error && <div className={styles.error}>{error}</div>}
 
           <button className={styles.submit} type="submit" disabled={busy}>
             {busy ? "Signing in" : "Continue"} <ArrowRight size={17} />
           </button>
         </form>
-
-        <div className={styles.demo}>
-          <span>Seeded accounts</span>
-          <button type="button" onClick={() => { setEmail(demoUsers[0].email); setPassword(demoUsers[0].password); setError(""); }}>
-            <Building2 size={14} /> Admin
-          </button>
-          <button type="button" onClick={() => { setEmail(demoUsers[1].email); setPassword(demoUsers[1].password); setError(""); }}>
-            <UserRound size={14} /> Staff
-          </button>
-        </div>
 
         <Link href="/" className={styles.back}>Back to main page</Link>
       </section>

@@ -13,20 +13,21 @@ import { useAuthGuard } from "./AuthGuard";
 import { logout } from "@/lib/client-auth";
 import { useAuthStore } from "@/lib/store/auth-store";
 
+// Neutral placeholder used before the auth store hydrates or when there is no
+// session. No sample identity — the real name/initials come from the logged-in
+// user (see `identity` below).
 const STAFF = {
-  id: "staff-amara-koch",
-  organizationId: "org-maple-health-partners",
-  facilityId: "facility-maple-grove-care",
-  name: "Amara Koch",
+  name: "",
   role: "Caregiver",
-  initials: "AK",
+  initials: "",
 };
 
+// Facility/organization labels for the sidebar context chip. There is no
+// facility name on the client session yet, so these stay as neutral
+// placeholders rather than a hardcoded sample facility.
 const FACILITY_CONTEXT = {
-  organizationId: "org-maple-health-partners",
-  facilityId: "facility-maple-grove-care",
-  facilityName: "Maple Grove Care",
-  organizationName: "Maple Health Partners",
+  facilityName: "Facility",
+  organizationName: "",
 };
 
 const SECTION_SUBTITLES = {
@@ -186,9 +187,9 @@ export default function StaffShell({ children }) {
           </div>
 
           <div className="cx-staff-context">
-            <div className="cx-staff-facility" title={`${FACILITY_CONTEXT.facilityName} · ${FACILITY_CONTEXT.organizationName}`}>
+            <div className="cx-staff-facility" title={[FACILITY_CONTEXT.facilityName, FACILITY_CONTEXT.organizationName].filter(Boolean).join(" · ")}>
               <Building2 size={15} />
-              <div className="cx-user-copy"><strong>{FACILITY_CONTEXT.facilityName}</strong><span>{FACILITY_CONTEXT.organizationName}</span></div>
+              <div className="cx-user-copy"><strong>{FACILITY_CONTEXT.facilityName}</strong>{FACILITY_CONTEXT.organizationName && <span>{FACILITY_CONTEXT.organizationName}</span>}</div>
             </div>
           </div>
 
