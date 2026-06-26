@@ -64,7 +64,7 @@ export function signAccessToken(payload) {
   const { privateKey, algo } = loadKeys();
   return jwt.sign(tokenPayload(payload, 'access'), privateKey, {
     algorithm: algo,
-    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '2h',
     issuer: 'colaris-care-api',
     audience: 'colaris-care-client',
   });

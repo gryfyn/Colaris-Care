@@ -33,7 +33,8 @@ function safeNext(role, requestedNext) {
 
 export async function POST(request) {
   try {
-    const limit = await checkRateLimit(`auth:login:${clientIp(request)}`, 10, 60);
+    const maxAttempts = Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 10;
+    const limit = await checkRateLimit(`auth:login:${clientIp(request)}`, maxAttempts, 60);
     if (!limit.allowed) {
       const limited = getRateLimitResponse(limit);
       return Response.json(limited.body, { status: limited.status, headers: limited.headers });
