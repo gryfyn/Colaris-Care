@@ -35,8 +35,6 @@ export async function withApiContext(request, permission, action, handler) {
       {
         error: status >= 500 ? 'Internal server error' : err.message,
         code: err?.code || 'API_ERROR',
-        // TEMP DIAGNOSTIC (remove after debugging): surface DB error context
-        debug: status >= 500 ? { message: err?.message, detail: err?.detail, position: err?.position, where: err?.where } : undefined,
       },
       { status }
     );

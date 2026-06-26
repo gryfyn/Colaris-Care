@@ -119,7 +119,7 @@ export async function POST(request) {
           id, organization_id, facility_id, first_name, last_name, date_of_birth,
           room, care_level, status, admitted_at, created_by, updated_by
         )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, coalesce($9, 'active'), $10, $10)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, coalesce($9, 'active'), $10, $11, $11)
         returning id, first_name, last_name, date_of_birth, room, care_level, status, admitted_at, discharged_at, version
       `,
       [
@@ -132,6 +132,7 @@ export async function POST(request) {
         body.roomAssignment || body.room || null,
         body.observationLevel || body.careLevel || null,
         body.status || 'active',
+        toDate(body.admissionDate || body.admittedAt),
         user.id,
       ]
     );
