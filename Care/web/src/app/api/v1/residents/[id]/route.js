@@ -49,6 +49,7 @@ function mapResident(row, tenantKey) {
 }
 
 export async function GET(request, { params }) {
+  const { id } = await params;
   return withApiContext(request, PERMISSIONS.RESIDENTS_READ, 'residents:read', async ({ client, user }) => {
     const { rows } = await client.query(
       `
@@ -59,7 +60,7 @@ export async function GET(request, { params }) {
          where id = $1
          limit 1
       `,
-      [params.id]
+      [id]
     );
     if (!rows.length) {
       const err = new Error('Resident not found');
@@ -84,13 +85,14 @@ export async function GET(request, { params }) {
          order by a.submitted_at desc, a.updated_at desc
          limit 20
       `,
-      [user.organizationId, user.facilityId, params.id]
+      [user.organizationId, user.facilityId, id]
     );
     return { ...resident, admissions: mapAdmissions(admissions) };
   });
 }
 
 export async function PATCH(request, { params }) {
+  const { id } = await params;
   return withApiContext(request, PERMISSIONS.RESIDENTS_UPDATE, 'residents:update', async ({ client, user }) => {
     const body = await readJson(request);
 
@@ -110,7 +112,7 @@ export async function PATCH(request, { params }) {
             organizationId: user.organizationId,
             facilityId: user.facilityId,
             table: 'residents',
-            rowId: params.id,
+            rowId: id,
             field: SSN_FIELD,
           })
         );
@@ -139,7 +141,7 @@ export async function PATCH(request, { params }) {
                   ssn_last4_ciphertext
       `,
       [
-        params.id,
+        id,
         body.firstName || null,
         body.lastName || null,
         body.room || null,
@@ -157,7 +159,7 @@ export async function PATCH(request, { params }) {
       err.status = 404;
       throw err;
     }
-    await recordAuditEvent(client, user, 'residents:update', { type: 'resident', id: params.id });
+    await recordAuditEvent(client, user, 'residents:update', { type: 'resident', id: id });
     const tenantKey = await getTenantKey(user.organizationId, user.facilityId);
     return maskPHI(mapResident(rows[0], tenantKey), user.role);
   });

@@ -20,6 +20,7 @@ function mapRequest(row) {
 }
 
 export async function PATCH(request, { params }) {
+  const { id } = await params;
   return withApiContext(request, PERMISSIONS.RESIDENTS_UPDATE, 'resident_requests:update', async ({ client, user }) => {
     const body = await readJson(request);
     const { rows } = await client.query(
@@ -38,14 +39,14 @@ export async function PATCH(request, { params }) {
                   rr.request_type, rr.detail, rr.priority, rr.status,
                   rr.assigned_staff_id, rr.created_at, rr.updated_at, rr.completed_at
       `,
-      [params.id, body.status || null, body.priority || null, body.assignedStaffId || null, user.id]
+      [id, body.status || null, body.priority || null, body.assignedStaffId || null, user.id]
     );
     if (!rows.length) {
       const err = new Error('Resident request not found');
       err.status = 404;
       throw err;
     }
-    await recordAuditEvent(client, user, 'resident_request.update', { type: 'resident_request', id: params.id, status: rows[0].status });
+    await recordAuditEvent(client, user, 'resident_request.update', { type: 'resident_request', id: id, status: rows[0].status });
     return mapRequest(rows[0]);
   });
 }

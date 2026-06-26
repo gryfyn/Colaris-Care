@@ -3,6 +3,7 @@ import { withApiContext } from '@/lib/api-helpers.js';
 import { recordAuditEvent } from '@/lib/audit-events.js';
 
 export async function POST(request, { params }) {
+  const { id } = await params;
   return withApiContext(request, PERMISSIONS.CARE_PLANS_APPROVE, 'care_plans:approve', async ({ client, user }) => {
     const { rows } = await client.query(
       `
@@ -14,14 +15,14 @@ export async function POST(request, { params }) {
          where id = $1
         returning id, status, approved_at
       `,
-      [params.id, user.id]
+      [id, user.id]
     );
     if (!rows.length) {
       const err = new Error('Care plan not found');
       err.status = 404;
       throw err;
     }
-    await recordAuditEvent(client, user, 'care_plans:approve', { type: 'care_plan', id: params.id });
+    await recordAuditEvent(client, user, 'care_plans:approve', { type: 'care_plan', id: id });
     return rows[0];
   });
 }

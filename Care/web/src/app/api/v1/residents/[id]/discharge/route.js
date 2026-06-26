@@ -3,6 +3,7 @@ import { readJson, withApiContext } from '@/lib/api-helpers.js';
 import { recordAuditEvent } from '@/lib/audit-events.js';
 
 export async function POST(request, { params }) {
+  const { id } = await params;
   return withApiContext(request, PERMISSIONS.RESIDENTS_DISCHARGE, 'residents:discharge', async ({ client, user }) => {
     const body = await readJson(request);
     const dischargeDate = body.dischargeDate || new Date().toISOString().slice(0, 10);
@@ -18,7 +19,7 @@ export async function POST(request, { params }) {
          where id = $1
         returning id, status, discharged_at
       `,
-      [params.id, dischargeDate, user.id]
+      [id, dischargeDate, user.id]
     );
     if (!rows.length) {
       const err = new Error('Resident not found');
@@ -38,7 +39,7 @@ export async function POST(request, { params }) {
       [
         user.organizationId,
         user.facilityId,
-        params.id,
+        id,
         dischargeDate,
         body.destination || null,
         body.summary || null,
@@ -46,7 +47,7 @@ export async function POST(request, { params }) {
       ]
     );
 
-    await recordAuditEvent(client, user, 'residents:discharge', { type: 'resident', id: params.id });
+    await recordAuditEvent(client, user, 'residents:discharge', { type: 'resident', id: id });
     return rows[0];
   });
 }

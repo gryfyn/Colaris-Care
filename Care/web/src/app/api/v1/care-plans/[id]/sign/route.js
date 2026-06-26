@@ -4,6 +4,7 @@ import { recordAuditEvent } from '@/lib/audit-events.js';
 import { staffAssignmentPredicate } from '@/lib/staff-access.js';
 
 export async function POST(request, { params }) {
+  const { id } = await params;
   return withApiContext(request, PERMISSIONS.CARE_PLANS_SIGN, 'care_plans:sign', async ({ client, user }) => {
     const existing = await client.query(
       `
@@ -11,7 +12,7 @@ export async function POST(request, { params }) {
           from care.care_plans
          where id = $1
       `,
-      [params.id]
+      [id]
     );
     if (!existing.rows.length) {
       const err = new Error('Care plan not found');
@@ -46,14 +47,14 @@ export async function POST(request, { params }) {
          where id = $1
         returning id, signed_at
       `,
-      [params.id, user.id]
+      [id, user.id]
     );
     if (!rows.length) {
       const err = new Error('Care plan not found');
       err.status = 404;
       throw err;
     }
-    await recordAuditEvent(client, user, 'care_plans:sign', { type: 'care_plan', id: params.id });
+    await recordAuditEvent(client, user, 'care_plans:sign', { type: 'care_plan', id: id });
     return rows[0];
   });
 }
