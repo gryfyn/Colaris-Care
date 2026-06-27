@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/fields";
 import { apiData, displayDate } from "@/lib/client-api";
 import { uploadPortrait } from "@/lib/cloudinary-upload";
+import { uploadDocument } from "@/lib/r2-upload";
 
 const CONDITION_OPTIONS = [
   "Diabetes",
@@ -341,6 +342,23 @@ export default function AdmissionForm() {
       setCreatedResident(result.resident || null);
       setCreatedAdmission(result.admission || null);
       setAdminNotification(result.adminNotification || null);
+
+      // Upload any attached documents to R2 and record them against the new
+      // resident (non-fatal per file — admission still completes).
+      const newResidentId = result.resident?.id;
+      if (newResidentId) {
+        for (const [type, file] of Object.entries(v.documents)) {
+          if (!file) continue;
+          try {
+            const meta = await uploadDocument(file, "residents");
+            await apiData("/api/v1/documents", {
+              method: "POST",
+              body: JSON.stringify({ residentId: newResidentId, documentType: type, title: file.name, objectKey: meta.objectKey }),
+            });
+          } catch { /* skip this document; others continue */ }
+        }
+      }
+
       setSaving(false);
       setDone(true);
     } catch (error) {

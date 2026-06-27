@@ -11,6 +11,9 @@ import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/compon
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
 import ResidentPickerModal from "@/components/residents/ResidentPickerModal";
 import { uploadPortrait } from "@/lib/cloudinary-upload";
+import DocumentsPanel from "@/components/records/DocumentsPanel";
+
+const STAFF_DOC_TYPES = ["License", "Certification", "Background Check", "CPR / First Aid", "TB Test", "Other"];
 
 const TABS = [
   { id: "overview", label: "Overview", icon: UserRound },
@@ -256,6 +259,18 @@ export default function StaffDetailPage() {
               <EmptyState icon={Award} title="No certifications recorded" note="No credentials have been added for this team member yet." />
             )}
           </Panel>
+        )}
+
+        {tab === "certifications" && (
+          <div style={{ marginTop: 18 }}>
+            <DocumentsPanel
+              scope="staff"
+              staffProfileId={id}
+              title="Credential & certification files"
+              docTypes={STAFF_DOC_TYPES}
+              emptyNote="Optional — upload licenses, certifications, background checks, CPR/First Aid, or TB tests. Can be added anytime."
+            />
+          </div>
         )}
       </div>
 

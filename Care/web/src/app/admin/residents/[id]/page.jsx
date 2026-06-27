@@ -28,6 +28,9 @@ import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/compon
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
 import { openAdmissionFormPrint } from "@/lib/admission-print";
 import { uploadPortrait } from "@/lib/cloudinary-upload";
+import DocumentsPanel from "@/components/records/DocumentsPanel";
+
+const RESIDENT_DOC_TYPES = ["Admission Assessment", "Physician Orders", "Insurance", "ID", "Advance Directive", "Medication List", "Other Documents"];
 
 const TABS = [
   { id: "overview", label: "Overview", icon: HeartHandshake },
@@ -585,7 +588,7 @@ export default function ResidentDetailPage() {
 
         {tab === "notes" && <Panel title={SECTION_META.notes.title}><FallbackSection icon={NotebookPen} title={SECTION_META.notes.title} empty={SECTION_META.notes.empty} /></Panel>}
         {tab === "incidents" && <Panel title={SECTION_META.incidents.title}><FallbackSection icon={AlertTriangle} title={SECTION_META.incidents.title} empty={SECTION_META.incidents.empty} /></Panel>}
-        {tab === "documents" && <Panel title={SECTION_META.documents.title}><FallbackSection icon={FolderOpen} title={SECTION_META.documents.title} empty={SECTION_META.documents.empty} /></Panel>}
+        {tab === "documents" && <DocumentsPanel scope="residents" residentId={id} docTypes={RESIDENT_DOC_TYPES} emptyNote="Use Upload to add admission assessments, IDs, insurance, and more." />}
       </div>
     </div>
   );
