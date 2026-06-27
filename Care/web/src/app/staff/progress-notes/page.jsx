@@ -1,5 +1,5 @@
-import StaffRecordForm from "@/components/records/StaffRecordForm";
+import ProgressNotesPage from "@/components/records/ProgressNotesPage";
 
 export default function StaffProgressNotesPage() {
-  return <StaffRecordForm type="progress" />;
+  return <ProgressNotesPage />;
 }

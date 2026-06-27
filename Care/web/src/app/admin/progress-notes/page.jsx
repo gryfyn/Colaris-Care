@@ -1,5 +1,5 @@
-import AdminReviewPage from "@/components/records/AdminReviewPage";
+import ProgressNotesPage from "@/components/records/ProgressNotesPage";
 
 export default function AdminProgressNotesPage() {
-  return <AdminReviewPage type="progress" />;
+  return <ProgressNotesPage />;
 }
