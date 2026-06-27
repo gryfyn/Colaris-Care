@@ -16,6 +16,13 @@ describe('roles', () => {
     expect(hasPermission(ROLES.STAFF, PERMISSIONS.ADMIN_AUDIT_READ)).toBe(false);
   });
 
+  test('staff can read and action resident requests (caregiver workflow)', () => {
+    expect(hasPermission(ROLES.STAFF, PERMISSIONS.RESIDENT_REQUESTS_READ)).toBe(true);
+    expect(hasPermission(ROLES.STAFF, PERMISSIONS.RESIDENT_REQUESTS_WRITE)).toBe(true);
+    // ...but this must NOT have re-granted the broader resident lifecycle.
+    expect(hasPermission(ROLES.STAFF, PERMISSIONS.RESIDENTS_UPDATE)).toBe(false);
+  });
+
   test('admin has full permission map', () => {
     for (const permission of Object.values(PERMISSIONS)) {
       expect(hasPermission(ROLES.ADMIN, permission)).toBe(true);
