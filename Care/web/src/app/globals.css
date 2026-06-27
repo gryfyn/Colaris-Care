@@ -458,6 +458,21 @@ img, video, canvas { height: auto; }
 }
 .cx-nav a:hover { background:var(--cx-paper-2); color:var(--cx-ink); }
 .cx-nav a.cx-on { background:var(--cx-accent-soft); color:var(--cx-accent-strong); font-weight:600; }
+
+/* Unread count badge on the Notifications nav item + red dot on the bell. */
+.cx-nav-badge {
+  margin-left:auto; flex:none; min-width:18px; height:18px; padding:0 5px;
+  display:inline-flex; align-items:center; justify-content:center; line-height:1;
+  border-radius:999px; background:#DC2626; color:#fff; font-size:11px; font-weight:700;
+}
+.cx-app[data-collapsed="true"] .cx-nav-badge {
+  position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; font-size:10px;
+}
+.cx-bell { position:relative; }
+.cx-bell-dot {
+  position:absolute; top:4px; right:4px; width:8px; height:8px; border-radius:50%;
+  background:#DC2626; border:1.5px solid var(--cx-paper);
+}
 .cx-nav a.cx-on::before {
   content:""; position:absolute; left:-12px; top:8px; bottom:8px; width:3px;
   border-radius:0 3px 3px 0; background:var(--cx-accent);

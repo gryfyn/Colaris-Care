@@ -8,6 +8,8 @@ function mapNotification(row) {
     title: row.title,
     body: row.body,
     status: row.status,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
     createdAt: row.created_at,
     readAt: row.read_at,
   };
@@ -17,7 +19,7 @@ export async function GET(request) {
   return withApiContext(request, PERMISSIONS.STAFF_READ, 'notifications:read', async ({ client, user }) => {
     const { rows } = await client.query(
       `
-        select id, user_id, title, body, status, created_at, read_at
+        select id, user_id, title, body, status, source_type, source_id, created_at, read_at
           from care.notifications
          where (user_id is null or user_id = $1)
            and status <> 'archived'

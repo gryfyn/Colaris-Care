@@ -11,6 +11,7 @@ import {
 import { STAFF_NAV_FLAT, STAFF_NAV_GROUPS, usePrefs } from "./prefs";
 import { useAuthGuard } from "./AuthGuard";
 import { apiData } from "@/lib/client-api";
+import { useUnreadCount } from "@/lib/use-unread";
 import { logout } from "@/lib/client-auth";
 import { useAuthStore } from "@/lib/store/auth-store";
 
@@ -170,15 +171,19 @@ export default function StaffShell({ children }) {
     router.push("/login");
   };
 
+  const unread = useUnreadCount();
+
   const renderLink = (item) => {
     const Icon = item.icon;
     const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const badge = item.id === "staff-notifications" && unread > 0 ? unread : null;
     return (
       <Link key={item.id} href={item.href} className={active ? "cx-on" : undefined}
         title={prefs.sidebarCollapsed ? item.label : undefined}
         aria-current={active ? "page" : undefined} onClick={() => setDrawer(false)}>
         <Icon size={17} strokeWidth={1.9} />
         <span className="cx-nav-text">{item.label}</span>
+        {badge != null && <span className="cx-nav-badge" aria-label={`${badge} unread`}>{badge > 99 ? "99+" : badge}</span>}
       </Link>
     );
   };

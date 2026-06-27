@@ -13,6 +13,7 @@ import Onboarding from "./Onboarding";
 import { useAuthGuard } from "./AuthGuard";
 import { logout } from "@/lib/client-auth";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useUnreadCount } from "@/lib/use-unread";
 
 const SUBS = {
   dashboard: "Facility overview", admission: "New resident intake", residents: "Resident directory",
@@ -123,16 +124,19 @@ export default function Shell({ children }) {
 
   const all = [...NAV_FLAT, SETTINGS_ITEM];
   const current = all.find((i) => pathname === i.href || pathname.startsWith(i.href + "/")) || NAV_FLAT[0];
+  const unread = useUnreadCount();
 
   const renderLink = (item) => {
     const Icon = item.icon;
     const active = pathname === item.href || pathname.startsWith(item.href + "/");
+    const badge = item.id === "admin-notifications" && unread > 0 ? unread : null;
     return (
       <Link key={item.id} href={item.href} className={active ? "cx-on" : undefined}
         title={prefs.sidebarCollapsed ? item.label : undefined}
         aria-current={active ? "page" : undefined} onClick={() => setDrawer(false)}>
         <Icon size={17} strokeWidth={1.9} />
         <span className="cx-nav-text">{item.label}</span>
+        {badge != null && <span className="cx-nav-badge" aria-label={`${badge} unread`}>{badge > 99 ? "99+" : badge}</span>}
       </Link>
     );
   };
@@ -209,8 +213,9 @@ export default function Shell({ children }) {
                 </button>
               )}
               {prefs.topbar.notifications && (
-                <Link href="/admin/notifications" className="cx-facility cx-icon-btn" aria-label="Notifications" title="Notifications">
+                <Link href="/admin/notifications" className="cx-facility cx-icon-btn cx-bell" aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"} title="Notifications">
                   <Bell size={15} strokeWidth={2} />
+                  {unread > 0 && <span className="cx-bell-dot" aria-hidden="true" />}
                 </Link>
               )}
               <Link href="/admin/settings" className="cx-facility cx-icon-btn" aria-label="Settings" title="Settings">
