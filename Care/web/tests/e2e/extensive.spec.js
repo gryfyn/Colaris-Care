@@ -102,6 +102,9 @@ test.describe('admin portal', () => {
     await expect(page.getByRole('heading', { name: 'Emergency contact' })).toBeVisible();
     await expect(page.getByText('Fixture Kin').first()).toBeVisible();
     await expect(page.getByRole('button', { name: /download admission form/i }).first()).toBeVisible();
+    // Full admission packet tab renders every captured field.
+    await page.getByRole('tab', { name: /full admission/i }).click();
+    await expect(page.getByRole('heading', { name: 'Clinical overview' })).toBeVisible();
   });
 
   test('care plan creation flow end-to-end', async ({ page }) => {
@@ -116,6 +119,11 @@ test.describe('admin portal', () => {
     await page.getByRole('button', { name: /create care plan/i }).click();
     await expect(page).toHaveURL(/\/admin\/care-plans\/[0-9a-f-]{36}/, { timeout: 15000 });
     await expect(page.getByRole('button', { name: /download care plan/i })).toBeVisible();
+    // Sign + approve via the new buttons; they reflect the persisted state.
+    await page.getByRole('button', { name: /sign as clinician/i }).click();
+    await expect(page.getByRole('button', { name: /^Signed$/ })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /approve plan/i }).click();
+    await expect(page.getByRole('button', { name: /^Approved$/ })).toBeVisible({ timeout: 10000 });
   });
 
   test('staff member detail loads from the database', async ({ page }) => {
