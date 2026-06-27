@@ -19,7 +19,8 @@ export async function GET(request) {
       `
         select id, user_id, title, body, status, created_at, read_at
           from care.notifications
-         where user_id is null or user_id = $1
+         where (user_id is null or user_id = $1)
+           and status <> 'resolved'
          order by created_at desc
          limit 100
       `,

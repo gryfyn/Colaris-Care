@@ -1,6 +1,7 @@
 import { PERMISSIONS } from '@/lib/roles.js';
 import { readJson, withApiContext } from '@/lib/api-helpers.js';
 import { recordAuditEvent } from '@/lib/audit-events.js';
+import { createNotification, resolveNotifications, userIdForStaffProfile } from '@/lib/notifications.js';
 
 function mapRequest(row) {
   return {
@@ -47,6 +48,26 @@ export async function PATCH(request, { params }) {
       throw err;
     }
     await recordAuditEvent(client, user, 'resident_request.update', { type: 'resident_request', id: id, status: rows[0].status });
+
+    // Completing the task removes the assignee's pending notification; a new
+    // assignment (while still open) raises one for the newly-assigned staff.
+    if (rows[0].status === 'completed') {
+      await resolveNotifications(client, { organizationId: user.organizationId, facilityId: user.facilityId, sourceType: 'resident_request', sourceId: id });
+    } else if (body.assignedStaffId) {
+      const staffUserId = await userIdForStaffProfile(client, user.organizationId, user.facilityId, body.assignedStaffId);
+      if (staffUserId) {
+        await createNotification(client, {
+          organizationId: user.organizationId,
+          facilityId: user.facilityId,
+          userId: staffUserId,
+          title: 'Resident request assigned',
+          body: String(rows[0].detail || 'A resident request needs your attention.').slice(0, 200),
+          sourceType: 'resident_request',
+          sourceId: id,
+        });
+      }
+    }
+
     return mapRequest(rows[0]);
   });
 }

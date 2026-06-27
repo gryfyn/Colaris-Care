@@ -1,6 +1,7 @@
 import { PERMISSIONS } from '@/lib/roles.js';
 import { readJson, withApiContext } from '@/lib/api-helpers.js';
 import { recordAuditEvent } from '@/lib/audit-events.js';
+import { createNotification, userIdForStaffProfile } from '@/lib/notifications.js';
 
 function mapRequest(row) {
   return {
@@ -81,6 +82,23 @@ export async function POST(request) {
       ]
     );
     await recordAuditEvent(client, user, 'resident_request.create', { type: 'resident_request', id: rows[0].id });
+
+    // Notify the assigned staff member of a pending task they must action.
+    if (body.assignedStaffId) {
+      const staffUserId = await userIdForStaffProfile(client, user.organizationId, user.facilityId, body.assignedStaffId);
+      if (staffUserId) {
+        await createNotification(client, {
+          organizationId: user.organizationId,
+          facilityId: user.facilityId,
+          userId: staffUserId,
+          title: 'New resident request assigned',
+          body: String(body.detail || 'A resident request needs your attention.').slice(0, 200),
+          sourceType: 'resident_request',
+          sourceId: rows[0].id,
+        });
+      }
+    }
+
     const selected = await client.query(`${BASE_SELECT} where rr.id = $1 limit 1`, [rows[0].id]);
     return mapRequest(selected.rows[0]);
   });
