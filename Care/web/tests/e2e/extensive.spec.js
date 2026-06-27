@@ -136,6 +136,30 @@ test.describe('admin portal', () => {
     await expect(page.getByRole('button', { name: /^Approved$/ })).toBeVisible({ timeout: 10000 });
   });
 
+  test('schedule an appointment (DB-connected add flow)', async ({ page }) => {
+    await page.goto('/admin/appointments');
+    await page.getByRole('button', { name: /schedule appointment/i }).click();
+    const dialog = page.getByRole('dialog', { name: /schedule appointment/i });
+    await expect(dialog).toBeVisible();
+    const title = `E2E Visit ${RUN}`;
+    await dialog.getByLabel('Title').fill(title);
+    await dialog.getByLabel('Starts at').fill('2026-07-01T10:00');
+    await dialog.getByRole('button', { name: /^Schedule$/ }).click();
+    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('post an announcement (DB-connected add flow)', async ({ page }) => {
+    await page.goto('/admin/announcements');
+    await page.getByRole('button', { name: /post announcement/i }).click();
+    const dialog = page.getByRole('dialog', { name: /post announcement/i });
+    await expect(dialog).toBeVisible();
+    const title = `E2E Notice ${RUN}`;
+    await dialog.getByLabel('Title').fill(title);
+    await dialog.getByLabel('Body').fill('E2E announcement body');
+    await dialog.getByRole('button', { name: /^Post$/ }).click();
+    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
+  });
+
   test('staff member detail loads from the database', async ({ page }) => {
     test.skip(!fixture.staffId, 'no staff profile available');
     await page.goto(`/admin/staff/${fixture.staffId}`);
