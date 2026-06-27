@@ -212,6 +212,15 @@ test.describe('admin portal', () => {
     await expect(page.locator('img[src*="res.cloudinary.com"]').first()).toBeVisible({ timeout: 25000 });
   });
 
+  test('upload and list a resident document (R2)', async ({ page }) => {
+    test.skip(!fixture.residentId, 'need a resident');
+    await page.goto(`/admin/residents/${fixture.residentId}`);
+    await page.getByRole('tab', { name: /Documents/ }).click();
+    const name = `e2e-doc-${RUN}.pdf`;
+    await page.locator('input[type="file"][accept*="pdf"]').setInputFiles({ name, mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 colaris e2e', 'utf8') });
+    await expect(page.getByText(name)).toBeVisible({ timeout: 25000 });
+  });
+
   test('staff member detail loads from the database', async ({ page }) => {
     test.skip(!fixture.staffId, 'no staff profile available');
     await page.goto(`/admin/staff/${fixture.staffId}`);
