@@ -16,17 +16,17 @@ export async function createNotification(client, { organizationId, facilityId, u
   );
 }
 
-// Mark every notification for a completed task as resolved (the API hides these,
-// so the entry "gets deleted" from the recipient's inbox).
+// Archive every notification for a completed task (the API hides archived
+// entries, so the notification "gets deleted" from the recipient's inbox).
 export async function resolveNotifications(client, { organizationId, facilityId, sourceType, sourceId }) {
   if (!sourceType || !sourceId) return;
   await client.query(
     `
       update care.notifications
-         set status = 'resolved', read_at = coalesce(read_at, now())
+         set status = 'archived', read_at = coalesce(read_at, now())
        where organization_id = $1 and facility_id = $2
          and source_type = $3 and source_id = $4
-         and status <> 'resolved'
+         and status <> 'archived'
     `,
     [organizationId, facilityId, sourceType, sourceId]
   );
