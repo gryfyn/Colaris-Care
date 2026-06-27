@@ -190,6 +190,19 @@ test.describe('admin portal', () => {
     await expect(page.getByText(/^Signed/).first()).toBeVisible({ timeout: 10000 });
   });
 
+  test('report an incident (DB-connected add flow)', async ({ page }) => {
+    await page.goto('/admin/incidents');
+    await page.getByRole('button', { name: /report incident/i }).click();
+    const dialog = page.getByRole('dialog', { name: /report incident/i });
+    await expect(dialog).toBeVisible();
+    const type = `E2E Incident ${RUN}`;
+    await dialog.getByLabel('Incident type').fill(type);
+    await dialog.getByLabel('Occurred at').fill('2026-07-01T08:00');
+    await dialog.getByPlaceholder('What happened and immediate actions taken').fill('E2E summary');
+    await dialog.getByRole('button', { name: /file report/i }).click();
+    await expect(page.getByText(type)).toBeVisible({ timeout: 10000 });
+  });
+
   test('staff member detail loads from the database', async ({ page }) => {
     test.skip(!fixture.staffId, 'no staff profile available');
     await page.goto(`/admin/staff/${fixture.staffId}`);

@@ -123,6 +123,20 @@ test.describe('staff portal — deep flows', () => {
     await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
   });
 
+  test('staff can clock in and out (persisted)', async ({ page }) => {
+    await page.goto('/staff/dashboard');
+    const clock = page.getByRole('button', { name: /clock/i });
+    await expect(clock).toBeVisible();
+    const wasClockedIn = (await clock.textContent())?.includes('Clocked in');
+    await clock.click();
+    // Toggling flips the label between "Clock in" and "Clocked in".
+    await expect(clock).toHaveText(wasClockedIn ? /Clock in/ : /Clocked in/, { timeout: 10000 });
+    // Reload proves persistence, then toggle back to leave a clean state.
+    await page.reload();
+    await expect(page.getByRole('button', { name: /clock/i })).toHaveText(wasClockedIn ? /Clock in/ : /Clocked in/);
+    await page.getByRole('button', { name: /clock/i }).click();
+  });
+
   test('profile shows the signed-in staff member', async ({ page }) => {
     await page.goto('/staff/profile');
     await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
