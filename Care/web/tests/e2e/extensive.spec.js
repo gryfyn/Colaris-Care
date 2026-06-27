@@ -173,6 +173,23 @@ test.describe('admin portal', () => {
     await expect(page.getByText(`E2EMed${RUN}`)).toBeVisible({ timeout: 10000 });
   });
 
+  test('add and sign a progress note (DB-connected add flow)', async ({ page }) => {
+    test.skip(!fixture.residentId, 'need a resident');
+    await page.goto('/admin/progress-notes');
+    await page.getByRole('button', { name: /add note/i }).click();
+    const dialog = page.getByRole('dialog', { name: /add progress note/i });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Resident').selectOption(fixture.residentId);
+    const body = `E2E note ${RUN}`;
+    await dialog.getByPlaceholder('Document the progress note...').fill(body);
+    await dialog.getByRole('button', { name: /^Add note$/ }).click();
+    await expect(page.getByText(body)).toBeVisible({ timeout: 10000 });
+    // sign it (isolate our note via search first)
+    await page.getByRole('textbox', { name: /search progress notes/i }).fill(body);
+    await page.getByRole('button', { name: /^Sign$/ }).first().click();
+    await expect(page.getByText(/^Signed/).first()).toBeVisible({ timeout: 10000 });
+  });
+
   test('staff member detail loads from the database', async ({ page }) => {
     test.skip(!fixture.staffId, 'no staff profile available');
     await page.goto(`/admin/staff/${fixture.staffId}`);
