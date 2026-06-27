@@ -160,6 +160,19 @@ test.describe('admin portal', () => {
     await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
   });
 
+  test('prescribe a medication (DB-connected add flow)', async ({ page }) => {
+    test.skip(!fixture.residentId, 'need a resident');
+    await page.goto('/admin/medications');
+    await page.getByRole('button', { name: /prescribe medication/i }).click();
+    const dialog = page.getByRole('dialog', { name: /prescribe medication/i });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Resident').selectOption(fixture.residentId);
+    await dialog.getByLabel('Drug name').fill(`E2EMed${RUN}`);
+    await dialog.getByLabel('Frequency').fill('Daily');
+    await dialog.getByRole('button', { name: /^Prescribe$/ }).click();
+    await expect(page.getByText(`E2EMed${RUN}`)).toBeVisible({ timeout: 10000 });
+  });
+
   test('staff member detail loads from the database', async ({ page }) => {
     test.skip(!fixture.staffId, 'no staff profile available');
     await page.goto(`/admin/staff/${fixture.staffId}`);

@@ -79,6 +79,17 @@ test.describe('staff portal — deep flows', () => {
     await expect(page.getByText(new RegExp(`E2EStaff${RUN}`)).first()).toBeVisible();
   });
 
+  test('administer a due medication on the MAR (administering logic)', async ({ page }) => {
+    await page.goto('/staff/medications');
+    await page.getByRole('textbox', { name: /search medications/i }).fill(`E2EStaffMed${RUN}`);
+    await expect(page.getByText(`E2EStaffMed${RUN}`)).toBeVisible();
+    await page.getByRole('button', { name: /^Administer$/ }).first().click();
+    await expect(page.getByText('Administer medication')).toBeVisible();
+    await page.getByRole('button', { name: /confirm administration/i }).click();
+    // Once administered, the dose leaves the "due" queue.
+    await expect(page.getByText(`E2EStaffMed${RUN}`)).toHaveCount(0, { timeout: 10000 });
+  });
+
   test('notifications: mark all read', async ({ page }) => {
     await page.goto('/staff/notifications');
     await expect(page.getByText(fx.notifTitle)).toBeVisible();
