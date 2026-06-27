@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { STAFF_NAV_FLAT, STAFF_NAV_GROUPS, usePrefs } from "./prefs";
 import { useAuthGuard } from "./AuthGuard";
+import { apiData } from "@/lib/client-api";
 import { logout } from "@/lib/client-auth";
 import { useAuthStore } from "@/lib/store/auth-store";
 
@@ -65,6 +66,7 @@ function initialsOf(name) {
 export default function StaffShell({ children }) {
   const [drawer, setDrawer] = useState(false);
   const [clockedIn, setClockedIn] = useState(false);
+  const [clockBusy, setClockBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -76,6 +78,24 @@ export default function StaffShell({ children }) {
   const storeUser = useAuthStore((state) => state.user);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Persisted clock-in/out: load current state, toggle through the API.
+  useEffect(() => {
+    let alive = true;
+    apiData("/api/v1/me/clock").then((d) => { if (alive && d) setClockedIn(Boolean(d.clockedIn)); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  async function toggleClock() {
+    if (clockBusy) return;
+    setClockBusy(true);
+    try {
+      const d = await apiData("/api/v1/me/clock", { method: "POST", body: JSON.stringify({}) });
+      setClockedIn(Boolean(d?.clockedIn));
+    } catch { /* keep prior state */ } finally {
+      setClockBusy(false);
+    }
+  }
   const identity = mounted && storeUser
     ? {
         name: storeUser.displayName || STAFF.name,
@@ -217,7 +237,7 @@ export default function StaffShell({ children }) {
             <div className="cx-top-right">
               {showClock && (
                 <button type="button" className="cx-facility cx-staff-clock-btn" data-on={clockedIn ? "true" : "false"}
-                  onClick={() => setClockedIn((value) => !value)} aria-pressed={clockedIn}
+                  onClick={toggleClock} disabled={clockBusy} aria-pressed={clockedIn}
                   title={clockedIn ? "Clock out" : "Clock in"}>
                   <span className="cx-dot" />
                   {clockedIn ? <LogOut size={15} strokeWidth={2} /> : <LogIn size={15} strokeWidth={2} />}
