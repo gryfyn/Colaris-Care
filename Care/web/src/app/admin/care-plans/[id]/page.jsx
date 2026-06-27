@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  ArrowLeft, CalendarCheck, CalendarClock, CheckCircle2, ClipboardCheck,
-  Download, HeartPulse, History, ListChecks, Target, UserRound,
+  ArrowLeft, CalendarCheck, CalendarClock, CheckCheck, CheckCircle2, ClipboardCheck,
+  Download, HeartPulse, History, ListChecks, Loader2, PenLine, Target, UserRound,
 } from "lucide-react";
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
@@ -96,29 +96,44 @@ export default function CarePlanDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("goals");
+  const [acting, setActing] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      setError("");
+      const data = await apiData(`/api/v1/care-plans/${id}`);
+      setRaw(data);
+    } catch (err) {
+      setError(err.message || "Care plan not found");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await apiData(`/api/v1/care-plans/${id}`);
-        if (alive) setRaw(data);
-      } catch (err) {
-        if (alive) setError(err.message || "Care plan not found");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [id]);
+    setLoading(true);
+    void load();
+  }, [load]);
 
   const plan = useMemo(() => (raw ? toView(raw) : null), [raw]);
   const currentTab = TABS.find((item) => item.id === tab);
 
   function download() {
     if (raw) openCarePlanPrint(raw);
+  }
+
+  // Sign / approve hit the existing endpoints, then refetch to refresh sign-off.
+  async function act(action) {
+    if (acting) return;
+    setActing(action);
+    try {
+      await apiData(`/api/v1/care-plans/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
+      await load();
+    } catch (err) {
+      setError(err.message || `Unable to ${action} the care plan.`);
+    } finally {
+      setActing("");
+    }
   }
 
   if (loading) {
@@ -189,6 +204,15 @@ export default function CarePlanDetailPage() {
               </div>
             ))}
           </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <button type="button" className="cx-btn cx-btn-ghost" onClick={() => act("sign")} disabled={Boolean(acting) || Boolean(raw.signedAt)}>
+              {acting === "sign" ? <Loader2 size={14} className="cx-spin" /> : <PenLine size={14} />} {raw.signedAt ? "Signed" : "Sign as clinician"}
+            </button>
+            <button type="button" className="cx-btn cx-btn-primary" onClick={() => act("approve")} disabled={Boolean(acting) || Boolean(raw.approvedAt)}>
+              {acting === "approve" ? <Loader2 size={14} className="cx-spin" /> : <CheckCheck size={14} />} {raw.approvedAt ? "Approved" : "Approve plan"}
+            </button>
+          </div>
+          {error && <div style={{ marginTop: 10, fontSize: 12, color: "var(--cx-danger, #b42318)" }}>{error}</div>}
         </Panel>
       </div>
 

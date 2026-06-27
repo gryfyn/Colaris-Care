@@ -28,11 +28,100 @@ import { openAdmissionFormPrint } from "@/lib/admission-print";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: HeartHandshake },
+  { id: "packet", label: "Full admission", icon: FileText },
   { id: "admissions", label: "Admissions", icon: ClipboardList },
   { id: "notes", label: "Recent notes", icon: NotebookPen },
   { id: "incidents", label: "Incidents", icon: AlertTriangle },
   { id: "documents", label: "Documents", icon: FolderOpen },
 ];
+
+// Renders every field captured on the admission packet, grouped like the form.
+function FullAdmissionPacket({ admission }) {
+  const a = admission?.answers || {};
+  const diag = (list) => (Array.isArray(list) ? list.map((d) => (typeof d === "string" ? d : d?.text)).filter(Boolean) : []);
+  const allergies = (a.allergies || []).filter((x) => x && (x.allergen || x.reaction || x.severity));
+  const meds = (a.medications || []).filter((x) => x && x.medication);
+  const adls = a.adls && typeof a.adls === "object" ? Object.entries(a.adls).filter(([, v]) => v) : [];
+  const docs = a.documentNames && typeof a.documentNames === "object" ? Object.entries(a.documentNames).filter(([, v]) => v) : [];
+
+  const Row = ({ label, value }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderBottom: "1px dotted var(--cx-line)", fontSize: 13 }}>
+      <span style={{ color: "var(--cx-muted)" }}>{label}</span>
+      <span style={{ fontWeight: 600, color: "var(--cx-ink)", textAlign: "right" }}>{value || "—"}</span>
+    </div>
+  );
+  const Chips = ({ items }) => (
+    items.length ? <div className="cx-chips" style={{ marginTop: 6 }}>{items.map((c, i) => <span className="cx-chip" key={`${c}-${i}`}>{c}</span>)}</div> : <div style={{ fontSize: 12.5, color: "var(--cx-muted)", marginTop: 4 }}>None recorded</div>
+  );
+  const List = ({ items }) => (
+    items.length ? <ul style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 13 }}>{items.map((t, i) => <li key={`${t}-${i}`} style={{ margin: "2px 0" }}>{t}</li>)}</ul> : <div style={{ fontSize: 12.5, color: "var(--cx-muted)", marginTop: 4 }}>None recorded</div>
+  );
+
+  return (
+    <div className="cx-grid">
+      <Panel title="Basic information" pad>
+        <Row label="Full name" value={[a.firstName, a.middleName, a.lastName].filter(Boolean).join(" ")} />
+        <Row label="Preferred name" value={a.preferredName} />
+        <Row label="Date of birth" value={displayDate(a.dob)} />
+        <Row label="Gender" value={a.gender} />
+        <Row label="Pronouns" value={a.pronouns} />
+        <Row label="Phone" value={a.phone} />
+        <Row label="Email" value={a.email} />
+        <Row label="Address" value={a.currentAddress} />
+        <Row label="Referral source" value={a.referralSource} />
+        <Row label="Case manager" value={a.caseManager} />
+        <Row label="Facility" value={a.facility} />
+        <Row label="Room" value={a.roomAssignment} />
+        <Row label="Admission date" value={displayDate(a.admissionDate)} />
+        <Row label="Expected discharge" value={displayDate(a.expectedDischarge)} />
+      </Panel>
+
+      <Panel title="Emergency contact" pad>
+        <Row label="Name" value={a.emergencyName} />
+        <Row label="Relationship" value={a.emergencyRelationship} />
+        <Row label="Phone" value={a.emergencyPhone} />
+        <Row label="Email" value={a.emergencyEmail} />
+      </Panel>
+
+      <Panel title="Clinical overview" pad>
+        <div className="cx-eyebrow">Primary diagnoses</div><List items={diag(a.primaryDiagnoses)} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Secondary diagnoses</div><List items={diag(a.secondaryDiagnoses)} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Conditions</div><Chips items={Array.isArray(a.conditions) ? a.conditions : []} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Allergies</div>
+        {allergies.length ? allergies.map((x, i) => <Row key={i} label={x.allergen || "Allergen"} value={[x.reaction, x.severity].filter(Boolean).join(" · ")} />) : <div style={{ fontSize: 12.5, color: "var(--cx-muted)", marginTop: 4 }}>None recorded</div>}
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Medications</div>
+        {meds.length ? meds.map((x, i) => <Row key={i} label={x.medication} value={[x.dose, x.frequency, x.route].filter(Boolean).join(" · ")} />) : <div style={{ fontSize: 12.5, color: "var(--cx-muted)", marginTop: 4 }}>None recorded</div>}
+      </Panel>
+
+      <Panel title="Functional & behavioral" pad>
+        <Row label="Mobility" value={a.mobility} />
+        <Row label="Communication" value={a.communication} />
+        <Row label="Observation level" value={a.observationLevel} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Activities of daily living</div>
+        {adls.length ? adls.map(([k, v]) => <Row key={k} label={k} value={v} />) : <div style={{ fontSize: 12.5, color: "var(--cx-muted)", marginTop: 4 }}>None recorded</div>}
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Behavioral concerns</div><Chips items={Array.isArray(a.behavioralConcerns) ? a.behavioralConcerns : []} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Mental health diagnoses</div><List items={diag(a.mentalHealthDiagnoses)} />
+      </Panel>
+
+      <Panel title="Care plan" pad>
+        <div className="cx-eyebrow">Goals</div><List items={diag(a.goals)} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Interventions</div><List items={diag(a.interventions)} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Restrictions</div><List items={diag(a.restrictions)} />
+      </Panel>
+
+      <Panel title="Advance directives" pad>
+        <Row label="Advance directive exists" value={a.advanceDirectiveExists} />
+        <Row label="DNR status" value={a.dnrStatus} />
+        <Row label="Health care agent" value={a.healthCareAgent} />
+        <Row label="Agent phone" value={a.healthCareAgentPhone} />
+        <Row label="Preferred hospital" value={a.preferredHospital} />
+        <Row label="Directive uploaded" value={a.advanceDirectiveUploaded} />
+        <div className="cx-eyebrow" style={{ marginTop: 12 }}>Documents</div>
+        {docs.length ? docs.map(([k, v]) => <Row key={k} label={k} value={v} />) : <div style={{ fontSize: 12.5, color: "var(--cx-muted)", marginTop: 4 }}>None uploaded</div>}
+      </Panel>
+    </div>
+  );
+}
 
 const SECTION_META = {
   notes: { title: "Recent notes", empty: "No recent notes are available." },
@@ -368,6 +457,12 @@ export default function ResidentDetailPage() {
               <EmptyState icon={ClipboardList} title="No admission packet" note="This resident has no stored admission snapshot yet." />
             </Panel>
           )
+        )}
+
+        {tab === "packet" && (
+          latestAdmission
+            ? <FullAdmissionPacket admission={latestAdmission} />
+            : <Panel title="Full admission" pad><EmptyState icon={FileText} title="No admission packet" note="This resident has no stored admission snapshot yet." /></Panel>
         )}
 
         {tab === "admissions" && (
