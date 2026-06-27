@@ -108,6 +108,15 @@ test.describe('admin portal', () => {
     await expect(page.getByRole('heading', { name: 'Clinical overview' })).toBeVisible();
   });
 
+  test('edit resident room and care level', async ({ page }) => {
+    await page.goto(`/admin/residents/${fixture.residentId}`);
+    await page.getByRole('button', { name: /^Edit$/ }).click();
+    const room = `Room ${RUN}`;
+    await page.getByPlaceholder('Room 204B').fill(room);
+    await page.getByRole('button', { name: /^Save$/ }).click();
+    await expect(page.getByText(new RegExp(`Room ${RUN}`)).first()).toBeVisible({ timeout: 10000 });
+  });
+
   test('care plan creation flow end-to-end', async ({ page }) => {
     await page.goto('/admin/care-plans');
     await page.getByRole('button', { name: /add care plan/i }).first().click();
