@@ -102,6 +102,7 @@ test.describe('admin portal', () => {
     await expect(page.getByRole('heading', { name: 'Emergency contact' })).toBeVisible();
     await expect(page.getByText('Fixture Kin').first()).toBeVisible();
     await expect(page.getByRole('button', { name: /download admission form/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Discharge$/ })).toBeVisible();
     // Full admission packet tab renders every captured field.
     await page.getByRole('tab', { name: /full admission/i }).click();
     await expect(page.getByRole('heading', { name: 'Clinical overview' })).toBeVisible();
