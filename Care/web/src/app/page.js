@@ -1,62 +1,472 @@
-import Image from "next/image";
-import Link from "next/link";
-import { Activity, ArrowRight, BellRing, Building2, CalendarCheck, Check, CheckCircle2, ClipboardCheck, FileCheck2, LockKeyhole, Pill, ShieldCheck, Sparkles, UserRound, Users } from "lucide-react";
-import styles from "./page.module.css";
+'use client';
 
-const capabilities = [
-  { icon: Users, title: "Resident records", body: "Keep profiles, face sheets, care plans, and assigned teams connected in one reliable workspace." },
-  { icon: Pill, title: "Medication workflows", body: "Manage prescriptions, administration queues, exceptions, and review history with clear accountability." },
-  { icon: ClipboardCheck, title: "Clinical documentation", body: "Capture progress notes, incidents, drug disposal, and evacuation drills through structured workflows." },
-  { icon: CalendarCheck, title: "Daily coordination", body: "Bring appointments, shifts, announcements, and facility calendars into the flow of care." },
-  { icon: ShieldCheck, title: "Compliance review", body: "Give administrators a consistent review queue with status, notes, and operational oversight." },
-  { icon: BellRing, title: "Actionable alerts", body: "Keep care teams current with assignments, incidents, facility updates, and schedule notifications." },
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import {
+  Users, ClipboardList, Pill, Briefcase, Calendar, ShieldCheck,
+  AlertTriangle, CreditCard, MessageSquare, BarChart2, HeartPulse,
+  Sparkles, ArrowRight, ArrowUpRight, Check, Bell, Clock3,
+  FileCheck2, LayoutDashboard, Settings, TrendingUp,
+  Globe2, MonitorSmartphone, SearchCheck, Palette,
+} from 'lucide-react';
+import styles from './page.module.css';
+import BrandLogo from './(site)/_lib/BrandLogo';
+
+const CAPABILITIES = [
+  { Icon: Users,          name: 'Patient Management',           desc: "Every resident's profile, history, and care team in one connected record." },
+  { Icon: ClipboardList,  name: 'Care Planning',                desc: 'Build, update, and track individualized care plans as needs change.' },
+  { Icon: Pill,           name: 'Medication Administration',    desc: 'Record medications and administration with a clear, auditable trail.' },
+  { Icon: Briefcase,      name: 'Workforce Management',         desc: 'Manage staff, roles, and credentials across the whole organization.' },
+  { Icon: Calendar,       name: 'Staff Scheduling',             desc: 'Build balanced schedules and fill open shifts without the spreadsheets.' },
+  { Icon: ShieldCheck,    name: 'Compliance Tracking',          desc: 'Stay audit-ready with requirements and renewals tracked automatically.' },
+  { Icon: AlertTriangle,  name: 'Incident Reporting',           desc: 'Capture, route, and resolve incidents the moment they happen.' },
+  { Icon: CreditCard,     name: 'Billing & Financial Ops',      desc: 'Run billing and revenue operations alongside the care you deliver.' },
+  { Icon: MessageSquare,  name: 'Communication & Messaging',    desc: 'Keep caregivers, administrators, and families on the same page.' },
+  { Icon: BarChart2,      name: 'Analytics & Reporting',        desc: 'Turn day-to-day operations into decisions you can act on.' },
 ];
 
-const adminLogin = "/login?next=/admin/dashboard&intent=admin";
-const staffLogin = "/login?next=/staff/dashboard&intent=staff";
+const CAPABILITY_GROUPS = [
+  { label: 'Deliver better care', range: [0, 3], index: '01' },
+  { label: 'Run stronger teams', range: [3, 6], index: '02' },
+  { label: 'Stay ahead of risk', range: [6, 10], index: '03' },
+];
 
-export default function RootPage() {
-  return <main className={styles.site}>
-    <nav className={styles.nav} aria-label="Main navigation">
-      <Link href="/" className={styles.brand} aria-label="Colaris Care home"><Image src="/colarislogo.png" alt="" width={44} height={44} priority /><span><strong>Colaris Care</strong><small>Care, simplified.</small></span></Link>
-      <div className={styles.navLinks}><a href="#platform">Platform</a><a href="#workspaces">Workspaces</a><a href="#security">Security</a></div>
-      <div className={styles.navActions}><Link href={staffLogin} className={styles.textLink}>Staff portal</Link><Link href={adminLogin} className={styles.navButton}>Open admin <ArrowRight size={15} /></Link></div>
-    </nav>
+const SUITE = [
+  { Icon: HeartPulse,   lead: 'Care',       desc: 'Patient and care management at the heart of the platform.' },
+  { Icon: Users,        lead: 'Workforce',  desc: 'Staff scheduling and workforce optimization.' },
+  { Icon: ShieldCheck,  lead: 'Compliance', desc: 'Regulatory compliance and audit readiness.' },
+  { Icon: CreditCard,   lead: 'Billing',    desc: 'Healthcare billing and revenue management.' },
+  { Icon: BarChart2,    lead: 'Insights',   desc: 'Reporting, dashboards, and analytics.' },
+  { Icon: Sparkles,     lead: 'AI',         desc: 'Intelligent automation and decision support.', tag: 'Roadmap' },
+];
 
-    <section className={styles.hero}>
-      <div className={styles.heroGlow} aria-hidden="true" />
-      <div className={styles.heroCopy}>
-        <div className={styles.kicker}><Sparkles size={14} /> One connected care operations platform</div>
-        <h1>Make every day of care <em>clearer.</em></h1>
-        <p>Colaris gives residential care teams one calm, structured place to coordinate people, medication workflows, documentation, and compliance.</p>
-        <div className={styles.heroActions}><Link href={adminLogin} className={styles.primaryButton}>Explore the admin workspace <ArrowRight size={17} /></Link><Link href={staffLogin} className={styles.secondaryButton}><UserRound size={16} /> Enter staff workspace</Link></div>
-        <div className={styles.proofRow}>{["Role-based workflows", "Audit-ready records", "Built around care teams"].map((item) => <span key={item}><CheckCircle2 size={15} /> {item}</span>)}</div>
-      </div>
-      <div className={styles.productStage} aria-label="Colaris product preview">
-        <div className={styles.stageTop}><div className={styles.stageBrand}><Image src="/colarislogo.png" alt="" width={30} height={30} /><span>Maple Grove Care</span></div><div className={styles.stageUser}>AK</div></div>
-        <div className={styles.stageBody}>
-          <div className={styles.previewHeading}><span>Today at a glance</span><small>Thursday, June 25</small></div>
-          <div className={styles.metricGrid}><div><Activity size={16} /><strong>18</strong><span>Residents</span></div><div><CheckCircle2 size={16} /><strong>82%</strong><span>Rounds complete</span></div><div><FileCheck2 size={16} /><strong>4</strong><span>Pending review</span></div></div>
-          <div className={styles.previewColumns}><div className={styles.previewPanel}><div className={styles.panelTitle}><span>Care operations</span><small>Live</small></div>{[["Morning medication round","West wing · Completed","done"],["Progress notes","4 awaiting review","review"],["Resident appointments","3 scheduled today","next"]].map(([title,meta,state]) => <div className={styles.activityRow} key={title}><span className={styles[state]}><Check size={12} /></span><div><strong>{title}</strong><small>{meta}</small></div></div>)}</div><div className={styles.previewPanel}><div className={styles.panelTitle}><span>Team coverage</span><small>12 on shift</small></div><div className={styles.coverage}><div className={styles.avatarStack}><i>PN</i><i>DO</i><i>TR</i><i>+9</i></div><p>All wings covered</p><span>Next handoff · 3:00 PM</span></div></div></div>
+const AUDIENCE_NOW = [
+  'Residential Treatment Facilities',
+  'Assisted Living Communities',
+  'Long-Term Care Providers',
+  'Behavioral Health Organizations',
+  'Community Healthcare Providers',
+];
+const AUDIENCE_SOON = [
+  'Clinics',
+  'Hospitals',
+  'Home Healthcare Agencies',
+  'Healthcare Networks',
+  'Government Healthcare Programs',
+];
+
+const PRINCIPLES = ['Trustworthy', 'Human-Centered', 'Modern', 'Intelligent', 'Simple'];
+
+const DASHBOARD_METRICS = [
+  { label: 'Residents', value: '128', note: '+5 this week', Icon: Users },
+  { label: 'Medications due', value: '23', note: 'View schedule', Icon: Pill },
+  { label: 'Open incidents', value: '7', note: '2 need review', Icon: ShieldCheck },
+];
+
+const DASHBOARD_NAV = [
+  { label: 'Overview', Icon: LayoutDashboard, active: true },
+  { label: 'Residents', Icon: Users },
+  { label: 'Care plans', Icon: ClipboardList },
+  { label: 'Medications', Icon: Pill },
+  { label: 'Reports', Icon: BarChart2 },
+];
+
+const WEBSITE_FEATURES = [
+  { Icon: Palette, title: 'Built around your identity', text: 'A distinctive site shaped around your facility, services, and community.' },
+  { Icon: MonitorSmartphone, title: 'Designed for every screen', text: 'Fast, accessible experiences for families, referral partners, and applicants.' },
+  { Icon: SearchCheck, title: 'Ready to be discovered', text: 'Clear structure, local search foundations, analytics, and conversion paths.' },
+];
+
+export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+  const year = new Date().getFullYear();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const els = document.querySelectorAll(`.${styles.reveal}`);
+    if (!els.length) return;
+
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || !('IntersectionObserver' in window)) return; // leave content visible
+
+    // Arm (hide) then reveal on scroll. Anything already on screen reveals immediately.
+    els.forEach((el) => el.classList.add(styles.armed));
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add(styles.revealIn);
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.12 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div className={styles.page}>
+      {/* ── Nav ─────────────────────────────────────────────── */}
+      <header className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
+        <div className={`${styles.shell} ${styles.navInner}`}>
+          <a className={styles.brand} href="#top">
+            <BrandLogo />
+          </a>
+          <nav className={styles.navLinks}>
+            <a className={styles.navLink} href="/solutions">Solutions</a>
+            <a className={styles.navLink} href="/websites">Websites</a>
+            <a className={styles.navLink} href="/pricing">Pricing</a>
+            <a className={styles.navLink} href="/about">Company</a>
+          </nav>
+          <div className={styles.navActions}>
+            <a className={styles.navSignin} href="/login">Client sign in</a>
+            <a className={styles.btnPrimary} href="/contact">
+              Start a project <ArrowRight size={16} />
+            </a>
+          </div>
         </div>
-        <div className={styles.floatingCard}><ShieldCheck size={17} /><span><strong>Compliance ready</strong><small>Required reviews are on track</small></span></div>
-      </div>
-    </section>
+      </header>
 
-    <section className={styles.audienceStrip}><span>Purpose-built for</span><strong>Adult care homes</strong><i /><strong>Residential care</strong><i /><strong>Assisted living teams</strong><i /><strong>Multi-facility operators</strong></section>
+      <main id="top">
+        {/* ── Hero ──────────────────────────────────────────── */}
+        <section className={styles.hero}>
+          <div className={`${styles.shell} ${styles.heroGrid}`}>
+            <div>
+              <span className={styles.eyebrow}>Healthcare technology &amp; web studio</span>
+              <h1 className={styles.h1}>
+                Better digital experiences.<br />Built <em>for care.</em>
+              </h1>
+              <p className={styles.heroSub}>
+                Colaris creates modern healthcare software and independent websites for care
+                organizations, helping teams operate clearly and helping families find the
+                right care with confidence.
+              </p>
+              <div className={styles.heroCtas}>
+                <a className={styles.btnPrimary} href="/solutions">
+                  Explore solutions <ArrowRight size={16} />
+                </a>
+                <a className={styles.btnGhost} href="/websites">Build your website</a>
+              </div>
+              <div className={styles.heroMeta}>
+                <span className={styles.heroMetaItem}><Check size={15} /> Healthcare software</span>
+                <span className={styles.heroMetaItem}><Check size={15} /> Independent websites</span>
+                <span className={styles.heroMetaItem}><Check size={15} /> Built for care organizations</span>
+              </div>
+            </div>
 
-    <section className={styles.section} id="platform">
-      <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>The platform</span><h2>One operating system for the work behind great care.</h2></div><p>Replace disconnected forms and scattered updates with workflows that give every role the right context and next action.</p></div>
-      <div className={styles.capabilityGrid}>{capabilities.map(({icon:Icon,title,body},index) => <article className={styles.capabilityCard} key={title}><div className={styles.capabilityNumber}>0{index+1}</div><span className={styles.iconBox}><Icon size={20} /></span><h3>{title}</h3><p>{body}</p><span className={styles.cardLine} /></article>)}</div>
-    </section>
+            <div className={styles.productStage} role="img" aria-label="Preview of the Colaris operations dashboard">
+              <div className={styles.productGlow} aria-hidden="true" />
+              <div className={styles.dashboardFrame}>
+                <aside className={styles.dashboardRail} aria-hidden="true">
+                  <div className={styles.railBrand}><Image src="/colarislogo.png" alt="" width={20} height={20} /><span>Colaris</span></div>
+                  <div className={styles.railNav}>
+                    {DASHBOARD_NAV.map(({ label, Icon, active }) => (
+                      <span key={label} className={active ? styles.railItemActive : styles.railItem}>
+                        <Icon size={14} /> {label}
+                      </span>
+                    ))}
+                  </div>
+                  <span className={styles.railItem}><Settings size={14} /> Settings</span>
+                </aside>
+                <div className={styles.dashboardMain}>
+                  <div className={styles.dashboardTop}>
+                    <div>
+                      <p>Good morning, Sarah</p>
+                      <span>Here&apos;s what needs your attention today.</span>
+                    </div>
+                    <span className={styles.notification}><Bell size={15} /><i /></span>
+                  </div>
+                  <div className={styles.metricGrid}>
+                    {DASHBOARD_METRICS.map(({ label, value, note, Icon }) => (
+                      <div className={styles.metricCard} key={label}>
+                        <span className={styles.metricIcon}><Icon size={15} /></span>
+                        <small>{label}</small>
+                        <strong>{value}</strong>
+                        <em>{note}</em>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.dashboardLower}>
+                    <div className={styles.scheduleCard}>
+                      <div className={styles.cardHeading}><span>Today&apos;s schedule</span><Clock3 size={15} /></div>
+                      {['8:00  Medication pass', '9:30  Care team huddle', '11:00  Individual therapy'].map((item) => (
+                        <p key={item}>{item}</p>
+                      ))}
+                    </div>
+                    <div className={styles.progressCard}>
+                      <div className={styles.cardHeading}><span>Care plan progress</span><TrendingUp size={15} /></div>
+                      <div className={styles.progressVisual}>
+                        <div className={styles.progressRing}><span>82%</span></div>
+                        <p><b>On track</b><span>18 active plans</span></p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className={styles.statusFloat} aria-hidden="true">
+                <span><FileCheck2 size={17} /></span>
+                <p><b>Documentation complete</b><small>All required fields verified</small></p>
+                <Check size={15} />
+              </div>
+            </div>
+          </div>
+        </section>
 
-    <section className={styles.workspaceSection} id="workspaces">
-      <div className={styles.workspaceCopy}><span className={styles.eyebrow}>Built for every role</span><h2>Focused workspaces. Shared operational truth.</h2><p>Administrators get facility-wide oversight. Staff get a clear daily queue. Both work from the same connected operational context.</p><div className={styles.workspaceChecks}>{["Less time hunting for information","Clear ownership for every workflow","Consistent records across the facility"].map((item)=><span key={item}><Check size={15}/>{item}</span>)}</div></div>
-      <div className={styles.portalGrid}><Link href={adminLogin} className={styles.portalCard}><span className={styles.portalIcon}><Building2 size={22}/></span><small>Facility leadership</small><h3>Admin workspace</h3><p>Residents, staff, clinical review, reports, compliance, and facility operations.</p><strong>Open admin <ArrowRight size={15}/></strong></Link><Link href={staffLogin} className={`${styles.portalCard} ${styles.portalCardDark}`}><span className={styles.portalIcon}><UserRound size={22}/></span><small>Care team</small><h3>Staff workspace</h3><p>Assigned residents, medication administration, documentation, schedules, and alerts.</p><strong>Open staff portal <ArrowRight size={15}/></strong></Link></div>
-    </section>
+        {/* ── Value band ────────────────────────────────────── */}
+        <section className={styles.valueBand}>
+          <div className={`${styles.shell} ${styles.valueGrid} ${styles.reveal}`}>
+            <div className={styles.valueItem}>
+              <h3>Healthcare Focus</h3>
+              <p>Digital work grounded in the realities of care organizations, families, and teams.</p>
+            </div>
+            <div className={styles.valueItem}>
+              <h3>Two Clear Services</h3>
+              <p>Operational software and independent facility websites, scoped separately.</p>
+            </div>
+            <div className={styles.valueItem}>
+              <h3>Built for Trust</h3>
+              <p>Accessible, secure-minded experiences with clarity over unnecessary complexity.</p>
+            </div>
+          </div>
+        </section>
 
-    <section className={styles.securitySection} id="security"><div className={styles.securityMark}><LockKeyhole size={28}/></div><div className={styles.securityCopy}><span className={styles.eyebrow}>Trust by design</span><h2>Operational clarity without compromising control.</h2><p>Colaris structures access and review around real care-team responsibilities, helping facilities build consistent, accountable habits.</p></div><div className={styles.safeguards}>{["Role-specific admin and staff workspaces","Structured review and approval workflows","Facility and organization context throughout","Clear audit-ready operational history"].map(item=><span key={item}><CheckCircle2 size={16}/>{item}</span>)}</div></section>
-    <section className={styles.finalCta}><div><span className={styles.eyebrow}>Start with clarity</span><h2>Bring your care operations into one calm workspace.</h2></div><div className={styles.finalActions}><Link href={adminLogin} className={styles.primaryButton}>Explore Colaris <ArrowRight size={17}/></Link><span>Use mock login credentials for this preview</span></div></section>
-    <footer className={styles.footer}><div className={styles.brand}><Image src="/colarislogo.png" alt="" width={38} height={38}/><span><strong>Colaris Care</strong><small>Care, simplified.</small></span></div><p>Thoughtful software for the teams who make care happen.</p><div><Link href={adminLogin}>Admin</Link><Link href={staffLogin}>Staff</Link><a href="#security">Security</a></div></footer>
-  </main>;
+        {/* ── Platform capabilities ─────────────────────────── */}
+        <section id="platform" className={styles.section}>
+          <div className={styles.shell}>
+            <div className={`${styles.sectionHead} ${styles.platformHead} ${styles.reveal}`}>
+              <span className={styles.eyebrow}>Colaris Care software</span>
+              <h2 className={styles.h2}>Everything care delivery needs, connected.</h2>
+              <p className={styles.lead}>
+                Traditional systems isolate workflows. Colaris brings them into one ecosystem,
+                so every team works from the same source of truth.
+              </p>
+            </div>
+            <div className={`${styles.platformVisual} ${styles.reveal}`}>
+              <div className={styles.platformBrowserBar} aria-hidden="true">
+                <span /><span /><span />
+                <p>One connected workspace for every care team</p>
+              </div>
+              <Image
+                className={styles.platformImage}
+                src="/images/colaris-platform-dashboard.png"
+                alt="Colaris healthcare operations dashboard showing resident care, scheduling, compliance, staff, and reporting workflows"
+                width={1536}
+                height={1024}
+                sizes="(max-width: 1180px) 100vw, 1132px"
+              />
+              <div className={styles.platformProof}>
+                <span><Check size={14} /> Shared resident record</span>
+                <span><Check size={14} /> Real-time oversight</span>
+                <span><Check size={14} /> Audit-ready workflows</span>
+              </div>
+            </div>
+            <div className={`${styles.capGroups} ${styles.reveal}`}>
+              {CAPABILITY_GROUPS.map(({ label, range, index }) => (
+                <article key={label} className={styles.capGroup}>
+                  <header className={styles.capGroupHead}>
+                    <span>{index}</span>
+                    <h3>{label}</h3>
+                  </header>
+                  <div className={styles.capGroupItems}>
+                    {CAPABILITIES.slice(...range).map(({ Icon, name, desc }) => (
+                      <div key={name} className={styles.capFeature}>
+                        <span className={styles.capIcon}><Icon size={19} /></span>
+                        <div>
+                          <h4 className={styles.capName}>{name}</h4>
+                          <p className={styles.capDesc}>{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Colaris Suite ─────────────────────────────────── */}
+        <section id="websites" className={styles.webSection}>
+          <div className={`${styles.shell} ${styles.webGrid}`}>
+            <div className={`${styles.webCopy} ${styles.reveal}`}>
+              <span className={styles.eyebrow}><Globe2 size={14} /> Independent facility websites</span>
+              <h2 className={styles.webTitle}>Your website should make choosing care feel clearer.</h2>
+              <p className={styles.webLead}>
+                We design and build independent websites for healthcare facilities — separate
+                from the Colaris software — with the trust, accessibility, and clarity families
+                need when making important decisions.
+              </p>
+              <div className={styles.webFeatures}>
+                {WEBSITE_FEATURES.map(({ Icon, title, text }) => (
+                  <div className={styles.webFeature} key={title}>
+                    <span><Icon size={18} /></span>
+                    <p><strong>{title}</strong><small>{text}</small></p>
+                  </div>
+                ))}
+              </div>
+              <a className={styles.btnLight} href="/websites">Explore healthcare websites <ArrowRight size={16} /></a>
+            </div>
+
+            <div className={`${styles.websiteMockup} ${styles.reveal}`} aria-label="Example healthcare facility website design">
+              <div className={styles.mockBrowser}><i /><i /><i /><span>dependablecare.org</span></div>
+              <div className={styles.mockSiteNav}><b>Dependable Care</b><span>About&nbsp;&nbsp; Services&nbsp;&nbsp; Admissions</span><em>Schedule a visit</em></div>
+              <div className={styles.mockSiteHero}>
+                <div><small>Compassionate residential care</small><strong>A place to feel supported, seen, and at home.</strong><span>Explore our approach&nbsp; →</span></div>
+                <div className={styles.mockPortrait}><i /><i /></div>
+              </div>
+              <div className={styles.mockStats}><span><b>24/7</b> support</span><span><b>4.9</b> family rating</span><span><b>12+</b> care programs</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="suite" className={`${styles.section} ${styles.suiteSection}`}>
+          <div className={styles.shell}>
+            <div className={`${styles.sectionHead} ${styles.reveal}`}>
+              <span className={styles.eyebrow}>The Colaris suite</span>
+              <h2 className={styles.h2}>A family of products, one ecosystem.</h2>
+              <p className={styles.lead}>
+                Adopt what you need today and grow into the rest. Every Colaris product shares
+                the same data, identity, and experience.
+              </p>
+            </div>
+            <div className={`${styles.suiteGrid} ${styles.reveal}`}>
+              {SUITE.map(({ Icon, lead, desc, tag }) => (
+                <article key={lead} className={styles.suiteCard}>
+                  <div className={styles.suiteTop}>
+                    <span className={styles.suiteIcon}><Icon size={20} /></span>
+                    <h3 className={styles.suiteName}><span>Colaris</span> {lead}</h3>
+                  </div>
+                  <p className={styles.suiteDesc}>{desc}</p>
+                  {tag && <span className={styles.suiteTag}>{tag}</span>}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Who it's for ──────────────────────────────────── */}
+        <section id="audience" className={styles.section}>
+          <div className={styles.shell}>
+            <div className={`${styles.sectionHead} ${styles.reveal}`}>
+              <span className={styles.eyebrow}>Who it&apos;s for</span>
+              <h2 className={styles.h2}>Built for the organizations delivering care.</h2>
+            </div>
+            <div className={`${styles.audGrid} ${styles.reveal}`}>
+              <div className={`${styles.audCol} ${styles.audColLive}`}>
+                <h3>Serving today</h3>
+                <ul className={styles.audList}>
+                  {AUDIENCE_NOW.map((a) => (
+                    <li key={a} className={styles.audItem}>
+                      <span className={styles.audMark}><Check size={13} /></span>{a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className={`${styles.audCol} ${styles.audColSoon}`}>
+                <h3>Expanding to</h3>
+                <ul className={styles.audList}>
+                  {AUDIENCE_SOON.map((a) => (
+                    <li key={a} className={styles.audItem}>
+                      <span className={styles.audMark}><ArrowUpRight size={13} /></span>{a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Vision / Mission ──────────────────────────────── */}
+        <section id="vision" className={`${styles.section} ${styles.visionSection}`}>
+          <div className={styles.shell}>
+            <div className={`${styles.visionGrid} ${styles.reveal}`}>
+              <div className={styles.visionCell}>
+                <span className={styles.eyebrow}>Vision</span>
+                <p className={styles.visionStmt}>
+                  To become the <span>operating system</span> powering the future of healthcare.
+                </p>
+              </div>
+              <div className={styles.visionCell}>
+                <span className={styles.eyebrow}>Mission</span>
+                <p className={styles.visionStmt}>
+                  To simplify healthcare operations through a connected platform that improves
+                  efficiency, enhances collaboration, and <span>elevates outcomes</span>.
+                </p>
+              </div>
+            </div>
+            <div className={`${styles.principles} ${styles.reveal}`}>
+              {PRINCIPLES.map((p) => (
+                <span key={p} className={styles.principle}><b>·</b>{p}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Final CTA ─────────────────────────────────────── */}
+        <section className={styles.ctaSection}>
+          <div className={`${styles.shell} ${styles.reveal}`}>
+            <p className={styles.ctaTag}>Build what care <span>needs next.</span></p>
+            <p className={styles.ctaSub}>
+              Whether you need better internal software or a better public website, we&apos;ll help
+              define the right digital path for your organization.
+            </p>
+            <div className={styles.ctaButtons}>
+              <a className={styles.btnPrimary} href="/contact">Start a conversation <ArrowRight size={16} /></a>
+              <a className={styles.btnGhost} href="/pricing">View pricing</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ── Footer ──────────────────────────────────────────── */}
+      <footer className={styles.footer}>
+        <div className={styles.shell}>
+          <div className={styles.footTop}>
+            <div className={styles.footBrand}>
+              <span className={styles.brand}>
+                <BrandLogo tone="light" size={46} />
+              </span>
+              <p className={styles.footTagline}>
+                Digital products and independent websites for healthcare organizations,
+                built by Glass Inc Technologies.
+              </p>
+            </div>
+            <div className={styles.footCols}>
+              <div className={styles.footCol}>
+                <h4>Solutions</h4>
+                <a href="/suite">Colaris Care</a>
+                <a href="/websites">Facility websites</a>
+                <a href="/pricing">Pricing</a>
+                <a href="/who-its-for">Who it&apos;s for</a>
+              </div>
+              <div className={styles.footCol}>
+                <h4>Company</h4>
+                <a href="/about">About</a>
+                <a href="/vision">Vision &amp; mission</a>
+                <a href="/contact">Contact</a>
+                <a href="/request-demo">Start a conversation</a>
+                <a href="/login">Client sign in</a>
+              </div>
+              <div className={styles.footCol}>
+                <h4>Legal</h4>
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+              </div>
+            </div>
+          </div>
+          <div className={styles.footBottom}>
+            <span>© {year} Glass Inc Technologies · Colaris</span>
+            <span>Technology and websites, built for care.</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
 }
