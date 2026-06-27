@@ -102,6 +102,20 @@
 .submit:hover:not(:disabled) svg { transform: translateX(3px); }
 .submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.googleBtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper);
+  font-size: 0.94rem; font-weight: 600; color: var(--ink); cursor: pointer; font-family: inherit;
+}
+.googleBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+.gIcon { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #fff; color: #4285F4; font-weight: 800; border: 1px solid var(--line); font-size: 13px; }
+.orRule { display: flex; align-items: center; gap: 12px; color: var(--slate-soft); font-size: 0.82rem; }
+.orRule::before, .orRule::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.signupLine { margin: 0; font-size: 0.92rem; color: var(--slate); }
+.signupLink { color: var(--teal); font-weight: 600; text-decoration: none; }
+.signupLink:hover { text-decoration: underline; }
+
 .back {
   align-self: flex-start;
   font-size: 0.88rem; font-weight: 600; color: var(--slate);

@@ -107,6 +107,10 @@ export default function LoginForm() {
           </button>
         </form>
 
+        <p className={styles.signupLine}>
+          New to Colaris? <Link href="/signup" className={styles.signupLink}>Create an account</Link>
+        </p>
+
         <Link href="/" className={styles.back}>Back to main page</Link>
       </section>
 

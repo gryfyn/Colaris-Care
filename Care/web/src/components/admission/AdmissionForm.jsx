@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Loader2, Plus, ShieldCheck, UploadCloud, X } from "lucide-react";
 import {
@@ -206,6 +206,19 @@ export default function AdmissionForm() {
   const [createdAdmission, setCreatedAdmission] = useState(null);
   const [adminNotification, setAdminNotification] = useState(null);
   const [toast, setToast] = useState("");
+  const [facilityName, setFacilityName] = useState("");
+
+  // Pre-fill the facility from the onboarding profile so it isn't re-typed.
+  useEffect(() => {
+    let alive = true;
+    apiData("/api/v1/facility").then((f) => {
+      if (alive && f?.name) {
+        setFacilityName(f.name);
+        setV((state) => (state.facility ? state : { ...state, facility: f.name }));
+      }
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   const set = (key) => (value) => {
     setV((state) => ({ ...state, [key]: value }));
