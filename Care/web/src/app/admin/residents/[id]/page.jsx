@@ -415,6 +415,14 @@ export default function ResidentDetailPage() {
             >
               <Download size={15} /> Download admission form
             </button>
+            <Link
+              href={`/admin/care-plans/new?${new URLSearchParams({ residentId: resident.id, residentName: resident.name || "", room: resident.room || "" }).toString()}`}
+              className="cx-btn cx-btn-ghost"
+              style={{ textDecoration: "none" }}
+              title="Start a care plan for this resident"
+            >
+              <ClipboardList size={15} /> New care plan
+            </Link>
             <button type="button" className="cx-btn cx-btn-ghost" onClick={openEdit} title="Edit room and care level">
               <Pencil size={15} /> Edit
             </button>
