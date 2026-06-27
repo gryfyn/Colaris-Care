@@ -203,6 +203,15 @@ test.describe('admin portal', () => {
     await expect(page.getByText(type)).toBeVisible({ timeout: 10000 });
   });
 
+  test('upload a resident portrait (Cloudinary)', async ({ page }) => {
+    test.skip(!fixture.residentId, 'need a resident');
+    await page.goto(`/admin/residents/${fixture.residentId}`);
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'portrait.png', mimeType: 'image/png', buffer: png });
+    // After the upload round-trip the avatar becomes a Cloudinary <img>.
+    await expect(page.locator('img[src*="res.cloudinary.com"]').first()).toBeVisible({ timeout: 25000 });
+  });
+
   test('staff member detail loads from the database', async ({ page }) => {
     test.skip(!fixture.staffId, 'no staff profile available');
     await page.goto(`/admin/staff/${fixture.staffId}`);
