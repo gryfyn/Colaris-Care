@@ -132,7 +132,6 @@ function FullAdmissionPacket({ admission }) {
 const SECTION_META = {
   notes: { title: "Recent notes", empty: "No recent notes are available." },
   incidents: { title: "Incidents", empty: "No incidents are recorded." },
-  documents: { title: "Documents", empty: "No documents are available yet." },
 };
 
 function DetailRow({ label, value }) {
