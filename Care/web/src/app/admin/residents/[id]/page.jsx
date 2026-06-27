@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   FolderOpen,
   HeartHandshake,
   HeartPulse,
+  LogOut,
   MapPin,
   NotebookPen,
   Phone,
@@ -293,27 +294,47 @@ export default function ResidentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("overview");
+  const [discharging, setDischarging] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setError("");
+      const data = await apiData(`/api/v1/residents/${id}`);
+      setResident(data);
+    } catch (err) {
+      setError(err.message || "Resident not found");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await apiData(`/api/v1/residents/${id}`);
-        if (alive) setResident(data);
-      } catch (err) {
-        if (alive) setError(err.message || "Resident not found");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [id]);
+    setLoading(true);
+    void load();
+  }, [load]);
 
   const admissions = resident?.admissions || [];
   const latestAdmission = admissions[0] || null;
   const currentTab = useMemo(() => TABS.find((item) => item.id === tab) || TABS[0], [tab]);
+
+  // Discharge is a meaningful state change — confirm before calling the endpoint.
+  async function dischargeResident() {
+    if (discharging || resident?.status === "discharged") return;
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Discharge ${resident?.name}? This marks the resident as discharged and records a discharge entry.`)) return;
+    setDischarging(true);
+    try {
+      await apiData(`/api/v1/residents/${id}/discharge`, {
+        method: "POST",
+        body: JSON.stringify({ dischargeDate: new Date().toISOString().slice(0, 10) }),
+      });
+      await load();
+    } catch (err) {
+      setError(err.message || "Unable to discharge resident.");
+    } finally {
+      setDischarging(false);
+    }
+  }
 
   function downloadAdmissionForm() {
     if (!latestAdmission) return;
@@ -368,6 +389,11 @@ export default function ResidentDetailPage() {
             >
               <Download size={15} /> Download admission form
             </button>
+            {resident.status !== "discharged" && (
+              <button type="button" className="cx-btn cx-btn-ghost" onClick={dischargeResident} disabled={discharging} title="Discharge this resident">
+                <LogOut size={15} /> {discharging ? "Discharging..." : "Discharge"}
+              </button>
+            )}
           </div>
         )}
       />
