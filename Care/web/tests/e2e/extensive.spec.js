@@ -131,6 +131,18 @@ test.describe('admin portal', () => {
     await page.goto(`/admin/staff/${fixture.staffId}`);
     await expect(page.getByRole('heading', { name: 'Work overview' })).toBeVisible();
   });
+
+  test('assign a resident to a staff member', async ({ page }) => {
+    test.skip(!fixture.staffId || !fixture.residentId, 'need staff + resident');
+    await page.goto(`/admin/staff/${fixture.staffId}`);
+    await page.getByRole('tab', { name: 'Assignments' }).click();
+    await page.getByRole('button', { name: /assign resident/i }).first().click();
+    const dialog = page.getByRole('dialog', { name: /select a resident/i });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('textbox').fill(fixture.residentName);
+    await dialog.getByRole('button', { name: new RegExp(fixture.residentName) }).first().click();
+    await expect(page.getByText(new RegExp(fixture.residentName)).first()).toBeVisible({ timeout: 10000 });
+  });
 });
 
 // ----------------------------- STAFF PORTAL -----------------------------
