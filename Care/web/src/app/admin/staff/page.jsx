@@ -14,6 +14,7 @@ function normalizeStaff(staff) {
   return {
     id: staff.id,
     name: staff.name || `${staff.firstName || ""} ${staff.lastName || ""}`.trim(),
+    photoUrl: staff.photoUrl || null,
     role: staff.role || staff.roleTitle || "Team member",
     status: staff.status || "On shift",
     tone: staff.tone || statusTone(staff.status || "active"),
@@ -66,7 +67,7 @@ export default function StaffPage() {
         <span style={{ fontSize: 12.5, color: "var(--cx-faint)" }}>{rows.length} team member{rows.length === 1 ? "" : "s"}</span>
       </div>
       <div className="cx-tablewrap">
-        {rows.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Team member</th><th>Role</th><th>Status</th><th className="cx-hide-sm">Shift</th><th className="cx-hide-sm">Team</th><th aria-label="Open staff profile" /></tr></thead><tbody>{rows.map((staff) => <tr key={staff.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${staff.name}'s profile`} onClick={() => openStaff(staff.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openStaff(staff.id); } }}><td><div className="cx-cellname"><Avatar name={staff.name} round /><b>{staff.name}</b></div></td><td>{staff.role}</td><td><Badge tone={staff.tone} dot>{staff.status}</Badge></td><td className="cx-hide-sm cx-cellsub">{staff.shift.label}</td><td className="cx-hide-sm cx-cellsub">{staff.teams[0]}</td><td><ArrowRight size={16} color="var(--cx-faint)" /></td></tr>)}</tbody></table></div> : <EmptyState icon={ShieldCheck} title="No staff match" note="Try a different search or status filter." />}
+        {rows.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Team member</th><th>Role</th><th>Status</th><th className="cx-hide-sm">Shift</th><th className="cx-hide-sm">Team</th><th aria-label="Open staff profile" /></tr></thead><tbody>{rows.map((staff) => <tr key={staff.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${staff.name}'s profile`} onClick={() => openStaff(staff.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openStaff(staff.id); } }}><td><div className="cx-cellname"><Avatar name={staff.name} round src={staff.photoUrl} /><b>{staff.name}</b></div></td><td>{staff.role}</td><td><Badge tone={staff.tone} dot>{staff.status}</Badge></td><td className="cx-hide-sm cx-cellsub">{staff.shift.label}</td><td className="cx-hide-sm cx-cellsub">{staff.teams[0]}</td><td><ArrowRight size={16} color="var(--cx-faint)" /></td></tr>)}</tbody></table></div> : <EmptyState icon={ShieldCheck} title="No staff match" note="Try a different search or status filter." />}
       </div>
     </div>
   );

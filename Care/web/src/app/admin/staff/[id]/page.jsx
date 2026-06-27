@@ -10,6 +10,7 @@ import {
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
 import ResidentPickerModal from "@/components/residents/ResidentPickerModal";
+import { uploadPortrait } from "@/lib/cloudinary-upload";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: UserRound },
@@ -35,6 +36,7 @@ export default function StaffDetailPage() {
   const [picking, setPicking] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -70,6 +72,21 @@ export default function StaffDetailPage() {
       setActionError(err.message || "Unable to assign resident.");
     } finally {
       setAssigning(false);
+    }
+  }
+
+  async function uploadStaffPhoto(file) {
+    if (!file || photoBusy) return;
+    setPhotoBusy(true);
+    setActionError("");
+    try {
+      const photoUrl = await uploadPortrait(file, "staff");
+      await apiData(`/api/v1/staff/${id}`, { method: "PATCH", body: JSON.stringify({ photoUrl }) });
+      await load();
+    } catch (err) {
+      setActionError(err.message || "Photo upload failed.");
+    } finally {
+      setPhotoBusy(false);
     }
   }
 
@@ -113,7 +130,14 @@ export default function StaffDetailPage() {
 
       <div className="cx-panel" style={{ padding: 20, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <Avatar name={staff.name} round />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <Avatar name={staff.name} round src={staff.photoUrl} />
+            <label className="cx-link" style={{ fontSize: 11, cursor: photoBusy ? "wait" : "pointer" }}>
+              {photoBusy ? "Uploading..." : staff.photoUrl ? "Change photo" : "Add photo"}
+              <input type="file" accept="image/*" style={{ display: "none" }} disabled={photoBusy}
+                onChange={(e) => uploadStaffPhoto(e.target.files?.[0])} />
+            </label>
+          </div>
           <div style={{ minWidth: 180, flex: "1 1 220px" }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: "var(--cx-ink)" }}>{staff.name}</div>
             <div style={{ marginTop: 5, fontSize: 12.5, color: "var(--cx-muted)" }}>

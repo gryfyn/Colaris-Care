@@ -13,6 +13,7 @@ function mapStaff(row) {
     email: row.email,
     phone: row.phone,
     status: row.status,
+    photoUrl: row.photo_url,
     certifications: row.certifications,
   };
 }
@@ -21,7 +22,7 @@ export async function GET(request) {
   return withApiContext(request, PERMISSIONS.STAFF_READ, 'staff:read', async ({ client }) => {
     const { rows } = await client.query(
       `
-        select id, user_id, first_name, last_name, role_title, email, phone, status, certifications
+        select id, user_id, first_name, last_name, role_title, email, phone, status, photo_url, certifications
           from care.staff_profiles
          order by last_name, first_name
          limit 200
@@ -41,7 +42,7 @@ export async function POST(request) {
           first_name, last_name, role_title, email, phone, status
         )
         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, coalesce($10, 'active'))
-        returning id, user_id, first_name, last_name, role_title, email, phone, status, certifications
+        returning id, user_id, first_name, last_name, role_title, email, phone, status, photo_url, certifications
       `,
       [
         user.organizationId,

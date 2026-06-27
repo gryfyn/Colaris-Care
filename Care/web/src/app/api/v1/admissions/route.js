@@ -15,6 +15,7 @@ function mapResident(row) {
     room: row.room,
     careLevel: row.care_level,
     status: row.status,
+    photoUrl: row.photo_url,
     admittedAt: row.admitted_at,
     dischargedAt: row.discharged_at,
     version: row.version,
@@ -117,10 +118,10 @@ export async function POST(request) {
       `
         insert into care.residents(
           id, organization_id, facility_id, first_name, last_name, date_of_birth,
-          room, care_level, status, admitted_at, created_by, updated_by
+          room, care_level, status, admitted_at, created_by, updated_by, photo_url
         )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, coalesce($9, 'active'), $10, $11, $11)
-        returning id, first_name, last_name, date_of_birth, room, care_level, status, admitted_at, discharged_at, version
+        values ($1, $2, $3, $4, $5, $6, $7, $8, coalesce($9, 'active'), $10, $11, $11, $12)
+        returning id, first_name, last_name, date_of_birth, room, care_level, status, photo_url, admitted_at, discharged_at, version
       `,
       [
         residentId,
@@ -134,6 +135,7 @@ export async function POST(request) {
         body.status || 'active',
         toDate(body.admissionDate || body.admittedAt),
         user.id,
+        body.photoUrl || null,
       ]
     );
 

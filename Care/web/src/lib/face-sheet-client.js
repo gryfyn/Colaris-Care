@@ -27,6 +27,7 @@ export function buildFaceSheetFromResident(resident, documents = []) {
   return {
     id: resident.id,
     name,
+    photoUrl: resident.photoUrl || resident.photo_url || null,
     room: resident.room || "Unassigned",
     wing: careLevel,
     careLevel,

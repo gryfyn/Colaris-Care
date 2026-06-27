@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/lib/roles.js';
-import { withApiContext } from '@/lib/api-helpers.js';
+import { readJson, withApiContext } from '@/lib/api-helpers.js';
 
 function mapStaff(row) {
   return {
@@ -13,6 +13,7 @@ function mapStaff(row) {
     email: row.email,
     phone: row.phone,
     status: row.status,
+    photoUrl: row.photo_url,
     certifications: Array.isArray(row.certifications) ? row.certifications : [],
     createdAt: row.created_at,
   };
@@ -35,7 +36,7 @@ export async function GET(request, { params }) {
     const { rows } = await client.query(
       `
         select id, user_id, first_name, last_name, role_title, employee_number,
-               email, phone, status, certifications, created_at
+               email, phone, status, photo_url, certifications, created_at
           from care.staff_profiles
          where id = $1
          limit 1
@@ -66,5 +67,31 @@ export async function GET(request, { params }) {
     );
 
     return { ...mapStaff(rows[0]), assignments: assignments.map(mapAssignment) };
+  });
+}
+
+export async function PATCH(request, { params }) {
+  const { id } = await params;
+  return withApiContext(request, PERMISSIONS.STAFF_WRITE, 'staff:write', async ({ client }) => {
+    const body = await readJson(request);
+    const { rows } = await client.query(
+      `
+        update care.staff_profiles
+           set photo_url = coalesce($2, photo_url),
+               role_title = coalesce($3, role_title),
+               phone = coalesce($4, phone),
+               updated_at = now()
+         where id = $1
+        returning id, user_id, first_name, last_name, role_title, employee_number,
+                  email, phone, status, photo_url, certifications, created_at
+      `,
+      [id, body.photoUrl || null, body.roleTitle || null, body.phone || null]
+    );
+    if (!rows.length) {
+      const err = new Error('Staff member not found');
+      err.status = 404;
+      throw err;
+    }
+    return mapStaff(rows[0]);
   });
 }

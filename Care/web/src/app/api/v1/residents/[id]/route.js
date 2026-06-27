@@ -42,6 +42,7 @@ function mapResident(row, tenantKey) {
     room: row.room,
     careLevel: row.care_level,
     status: row.status,
+    photoUrl: row.photo_url,
     admittedAt: row.admitted_at,
     dischargedAt: row.discharged_at,
     version: row.version,
@@ -54,7 +55,7 @@ export async function GET(request, { params }) {
     const { rows } = await client.query(
       `
         select id, organization_id, facility_id, first_name, last_name, date_of_birth,
-               room, care_level, status, admitted_at, discharged_at, version,
+               room, care_level, status, photo_url, admitted_at, discharged_at, version,
                ssn_last4_ciphertext
           from care.residents
          where id = $1
@@ -129,6 +130,7 @@ export async function PATCH(request, { params }) {
                room = coalesce($4, room),
                care_level = coalesce($5, care_level),
                status = coalesce($6, status),
+               photo_url = coalesce($12, photo_url),
                ssn_last4_ciphertext = case when $8 then $9 else ssn_last4_ciphertext end,
                ssn_last4_key_version = case when $8 then $10 else ssn_last4_key_version end,
                ssn_last4_lookup_hash = case when $8 then $11 else ssn_last4_lookup_hash end,
@@ -152,6 +154,7 @@ export async function PATCH(request, { params }) {
         ssnCiphertext,
         ssnKeyVersion,
         ssnLookupHash,
+        body.photoUrl || null,
       ]
     );
     if (!rows.length) {

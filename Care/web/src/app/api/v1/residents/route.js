@@ -52,6 +52,7 @@ function mapResident(row, tenantKey) {
     room: row.room,
     careLevel: row.care_level,
     status: row.status,
+    photoUrl: row.photo_url,
     admittedAt: row.admitted_at,
     updatedAt: row.updated_at,
   };

@@ -102,7 +102,7 @@ export default function FaceSheetDocument({ sheet, mode = "admin" }) {
 
       <Panel title="Resident overview" pad>
         <div className="fs-identity">
-          <Avatar name={sheet.name} round />
+          <Avatar name={sheet.name} round src={sheet.photoUrl} />
           <div className="fs-identity-main">
             <div className="fs-name">{sheet.name}</div>
             <div className="fs-subtitle">

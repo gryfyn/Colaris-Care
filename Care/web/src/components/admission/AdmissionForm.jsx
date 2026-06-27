@@ -11,6 +11,7 @@ import {
   SegmentedField,
 } from "@/components/ui/fields";
 import { apiData, displayDate } from "@/lib/client-api";
+import { uploadPortrait } from "@/lib/cloudinary-upload";
 
 const CONDITION_OPTIONS = [
   "Diabetes",
@@ -326,9 +327,16 @@ export default function AdmissionForm() {
     setSaving(true);
     setToast("");
     try {
+      // Upload the captured portrait to Cloudinary (non-fatal — admission still
+      // proceeds if the image upload fails; the photo can be added later).
+      let photoUrl = null;
+      if (v.photo) {
+        try { photoUrl = await uploadPortrait(v.photo, "residents"); }
+        catch { setToast("Photo upload failed — admission saved without a portrait."); }
+      }
       const result = await apiData("/api/v1/admissions", {
         method: "POST",
-        body: JSON.stringify(serializeAdmissionPayload()),
+        body: JSON.stringify({ ...serializeAdmissionPayload(), photoUrl }),
       });
       setCreatedResident(result.resident || null);
       setCreatedAdmission(result.admission || null);

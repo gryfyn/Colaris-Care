@@ -27,6 +27,7 @@ import {
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
 import { openAdmissionFormPrint } from "@/lib/admission-print";
+import { uploadPortrait } from "@/lib/cloudinary-upload";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: HeartHandshake },
@@ -299,6 +300,7 @@ export default function ResidentDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ room: "", careLevel: "" });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -359,6 +361,21 @@ export default function ResidentDetailPage() {
       setError(err.message || "Unable to update resident.");
     } finally {
       setSavingEdit(false);
+    }
+  }
+
+  // Upload (or replace) the resident portrait at any time, then persist the URL.
+  async function uploadResidentPhoto(file) {
+    if (!file || photoBusy) return;
+    setPhotoBusy(true);
+    try {
+      const photoUrl = await uploadPortrait(file, "residents");
+      await apiData(`/api/v1/residents/${id}`, { method: "PATCH", body: JSON.stringify({ photoUrl }) });
+      await load();
+    } catch (err) {
+      setError(err.message || "Photo upload failed.");
+    } finally {
+      setPhotoBusy(false);
     }
   }
 
@@ -457,7 +474,14 @@ export default function ResidentDetailPage() {
 
       <div className="cx-panel" style={{ padding: 20, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <Avatar name={resident.name} round />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <Avatar name={resident.name} round src={resident.photoUrl} />
+            <label className="cx-link" style={{ fontSize: 11, cursor: photoBusy ? "wait" : "pointer" }}>
+              {photoBusy ? "Uploading..." : resident.photoUrl ? "Change photo" : "Add photo"}
+              <input type="file" accept="image/*" style={{ display: "none" }} disabled={photoBusy}
+                onChange={(e) => uploadResidentPhoto(e.target.files?.[0])} />
+            </label>
+          </div>
           <div style={{ minWidth: 180, flex: "1 1 220px" }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: "var(--cx-ink)" }}>{resident.name}</div>
             <div style={{ marginTop: 5, fontSize: 12.5, color: "var(--cx-muted)" }}>

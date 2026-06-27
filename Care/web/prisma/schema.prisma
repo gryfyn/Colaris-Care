@@ -514,6 +514,7 @@ model residents {
   room                       String?
   care_level                 String?
   status                     String                       @default("active")
+  photo_url                  String?
   source_admission_case_id   String?                      @db.Uuid
   admitted_at                DateTime?                    @db.Date
   discharged_at              DateTime?                    @db.Date
@@ -618,6 +619,7 @@ model staff_profiles {
   email             String?
   phone             String?
   status            String              @default("active")
+  photo_url         String?
   certifications    Json                @default("[]")
   created_at        DateTime            @default(now()) @db.Timestamptz(6)
   updated_at        DateTime            @default(now()) @db.Timestamptz(6)

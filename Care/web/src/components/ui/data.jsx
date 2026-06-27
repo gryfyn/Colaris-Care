@@ -19,8 +19,18 @@ export function initials(name = "") {
   return ((p[0]?.[0] || "") + (p[1]?.[0] || "")).toUpperCase() || "—";
 }
 
-export function Avatar({ name, round, sm }) {
+export function Avatar({ name, round, sm, src }) {
   const [a, b, text] = avatarColors(name);
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name ? `${name} portrait` : "Portrait"}
+        className={`cx-ava${round ? " is-round" : ""}${sm ? " sm" : ""}`}
+        style={{ objectFit: "cover" }}
+      />
+    );
+  }
   return (
     <div className={`cx-ava${round ? " is-round" : ""}${sm ? " sm" : ""}`}
       style={{ background: `linear-gradient(150deg, ${a}, ${b})`, color: text }}>

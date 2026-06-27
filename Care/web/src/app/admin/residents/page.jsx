@@ -15,6 +15,7 @@ function normalizeResident(resident) {
   return {
     id: resident.id,
     name: resident.name || `${resident.firstName || ""} ${resident.lastName || ""}`.trim(),
+    photoUrl: resident.photoUrl || null,
     room: resident.room || "-",
     level: resident.level || resident.careLevel || "Care level not set",
     status: resident.status ? resident.status[0].toUpperCase() + resident.status.slice(1) : "Active",
@@ -77,7 +78,7 @@ export default function ResidentsPage() {
               <tbody>
                 {rows.map((resident) => (
                   <tr key={resident.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${resident.name}'s profile`} onClick={() => openResident(resident.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openResident(resident.id); } }}>
-                    <td><div className="cx-cellname"><Avatar name={resident.name} round /><b>{resident.name}</b></div></td>
+                    <td><div className="cx-cellname"><Avatar name={resident.name} round src={resident.photoUrl} /><b>{resident.name}</b></div></td>
                     <td className="cx-tnum">{resident.room}</td>
                     <td>{resident.level}</td>
                     <td><Badge tone={resident.tone} dot>{resident.status}</Badge></td>
