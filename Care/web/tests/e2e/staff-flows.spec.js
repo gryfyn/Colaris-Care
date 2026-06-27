@@ -111,6 +111,18 @@ test.describe('staff portal — deep flows', () => {
     await expect(page.getByText('Done')).toBeVisible({ timeout: 10000 });
   });
 
+  test('staff can schedule an appointment (DB-connected)', async ({ page }) => {
+    await page.goto('/staff/appointments');
+    await page.getByRole('button', { name: /schedule appointment/i }).click();
+    const dialog = page.getByRole('dialog', { name: /schedule appointment/i });
+    await expect(dialog).toBeVisible();
+    const title = `E2E Staff Appt ${RUN}`;
+    await dialog.getByLabel('Title').fill(title);
+    await dialog.getByLabel('Starts at').fill('2026-07-02T09:00');
+    await dialog.getByRole('button', { name: /^Schedule$/ }).click();
+    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
+  });
+
   test('profile shows the signed-in staff member', async ({ page }) => {
     await page.goto('/staff/profile');
     await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
