@@ -4,7 +4,7 @@
 import crypto from 'crypto';
 import {
   buildAAD, encryptPHI, decryptPHI, lookupHashPHI,
-  encryptFields, decryptFields,
+  encryptFields, decryptFields, looksLikeEncryptedPHI,
 } from '@/lib/encryption.js';
 
 const keyA = crypto.randomBytes(32).toString('hex');
@@ -45,6 +45,16 @@ describe('PHI encryption (AES-256-GCM)', () => {
     expect(encryptPHI('', keyA, aadA)).toBeNull();
     expect(encryptPHI(null, keyA, aadA)).toBeNull();
     expect(() => encryptPHI('4821', '', aadA)).toThrow(/encryption key/);
+  });
+});
+
+describe('looksLikeEncryptedPHI', () => {
+  test('recognizes ciphertext but not plaintext or non-strings', () => {
+    expect(looksLikeEncryptedPHI(encryptPHI('4821', keyA, aadA))).toBe(true);
+    expect(looksLikeEncryptedPHI('4821')).toBe(false);
+    expect(looksLikeEncryptedPHI('just a normal note')).toBe(false);
+    expect(looksLikeEncryptedPHI(null)).toBe(false);
+    expect(looksLikeEncryptedPHI(12345)).toBe(false);
   });
 });
 
