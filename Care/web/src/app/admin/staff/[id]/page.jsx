@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft, Award, BadgeCheck, CalendarDays, ClipboardList, Mail,
-  Phone, ShieldCheck, UserRound, Users,
+  Phone, Plus, ShieldCheck, UserRound, Users,
 } from "lucide-react";
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
+import ResidentPickerModal from "@/components/residents/ResidentPickerModal";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: UserRound },
@@ -31,23 +32,46 @@ export default function StaffDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("overview");
+  const [picking, setPicking] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      setError("");
+      const data = await apiData(`/api/v1/staff/${id}`);
+      setStaff(data);
+    } catch (err) {
+      setError(err.message || "Staff member not found");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await apiData(`/api/v1/staff/${id}`);
-        if (alive) setStaff(data);
-      } catch (err) {
-        if (alive) setError(err.message || "Staff member not found");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [id]);
+    setLoading(true);
+    void load();
+  }, [load]);
+
+  // Assign the picked resident to this staff member via the existing endpoint.
+  async function assignResident(resident) {
+    if (assigning) return;
+    setAssigning(true);
+    setActionError("");
+    try {
+      await apiData("/api/v1/staff/assignments", {
+        method: "POST",
+        body: JSON.stringify({ staffProfileId: id, residentId: resident.id }),
+      });
+      await load();
+      setPicking(false);
+      setTab("assignments");
+    } catch (err) {
+      setActionError(err.message || "Unable to assign resident.");
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   const assignments = staff?.assignments || [];
   const certifications = staff?.certifications || [];
@@ -162,7 +186,12 @@ export default function StaffDetailPage() {
         )}
 
         {tab === "assignments" && (
-          <Panel title="Assigned residents" pad>
+          <Panel
+            title="Assigned residents"
+            pad
+            action={<button type="button" className="cx-btn cx-btn-primary cx-btn-compact" onClick={() => setPicking(true)}><Plus size={14} /> Assign resident</button>}
+          >
+            {actionError && <div style={{ marginBottom: 10, fontSize: 12, color: "var(--cx-danger, #b42318)" }}>{actionError}</div>}
             {assignments.length ? (
               <div className="cx-feed">
                 {assignments.map((assignment) => (
@@ -177,7 +206,7 @@ export default function StaffDetailPage() {
                 ))}
               </div>
             ) : (
-              <EmptyState icon={Users} title="No resident assignments" note="This team member has no active resident assignments yet." />
+              <EmptyState icon={Users} title="No resident assignments" note="Use Assign resident to add this team member's first assignment." action={<button type="button" className="cx-btn cx-btn-primary" onClick={() => setPicking(true)}><Plus size={14} /> Assign resident</button>} />
             )}
           </Panel>
         )}
@@ -210,6 +239,16 @@ export default function StaffDetailPage() {
         <ShieldCheck size={14} color="var(--cx-accent)" />
         Work profile only — sensitive personal information is not shown here.
       </div>
+
+      {picking && (
+        <ResidentPickerModal
+          eyebrow={`Assign to ${staff.name}`}
+          title="Select a resident"
+          busy={assigning}
+          onClose={() => setPicking(false)}
+          onSelect={assignResident}
+        />
+      )}
     </div>
   );
 }
