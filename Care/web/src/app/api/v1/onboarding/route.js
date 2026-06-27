@@ -38,7 +38,7 @@ export async function POST(request) {
         b.layout ? String(b.layout) : null,
       ]
     );
-    return Response.json({ ok: true, email: s.email, organizationId: rows[0].organization_id, facilityId: rows[0].facility_id });
+    return Response.json({ ok: true, email: s.email, organizationId: rows[0].out_organization_id, facilityId: rows[0].out_facility_id });
   } catch (err) {
     logger.error({ err }, '[onboarding] provisioning failed');
     return Response.json({ error: 'Could not finish setup. Please try again.' }, { status: 500 });
