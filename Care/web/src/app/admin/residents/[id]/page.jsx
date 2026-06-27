@@ -17,6 +17,7 @@ import {
   LogOut,
   MapPin,
   NotebookPen,
+  Pencil,
   Phone,
   Pill,
   ShieldCheck,
@@ -295,6 +296,9 @@ export default function ResidentDetailPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState("overview");
   const [discharging, setDischarging] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ room: "", careLevel: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -333,6 +337,28 @@ export default function ResidentDetailPage() {
       setError(err.message || "Unable to discharge resident.");
     } finally {
       setDischarging(false);
+    }
+  }
+
+  function openEdit() {
+    setEditForm({ room: resident?.room || "", careLevel: resident?.careLevel || "" });
+    setEditing(true);
+  }
+
+  // Save room / care level via the existing residents PATCH endpoint.
+  async function saveEdit() {
+    setSavingEdit(true);
+    try {
+      await apiData(`/api/v1/residents/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ room: editForm.room.trim() || null, careLevel: editForm.careLevel.trim() || null }),
+      });
+      await load();
+      setEditing(false);
+    } catch (err) {
+      setError(err.message || "Unable to update resident.");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -389,6 +415,9 @@ export default function ResidentDetailPage() {
             >
               <Download size={15} /> Download admission form
             </button>
+            <button type="button" className="cx-btn cx-btn-ghost" onClick={openEdit} title="Edit room and care level">
+              <Pencil size={15} /> Edit
+            </button>
             {resident.status !== "discharged" && (
               <button type="button" className="cx-btn cx-btn-ghost" onClick={dischargeResident} disabled={discharging} title="Discharge this resident">
                 <LogOut size={15} /> {discharging ? "Discharging..." : "Discharge"}
@@ -397,6 +426,26 @@ export default function ResidentDetailPage() {
           </div>
         )}
       />
+
+      {editing && (
+        <div className="cx-panel" style={{ padding: 18, marginBottom: 18, borderColor: "var(--cx-accent)" }}>
+          <div className="cx-eyebrow" style={{ marginBottom: 10 }}>Edit resident</div>
+          <div className="cx-grid" style={{ alignItems: "end" }}>
+            <div>
+              <div className="cx-label">Room</div>
+              <input className="cx-input" value={editForm.room} onChange={(e) => setEditForm((s) => ({ ...s, room: e.target.value }))} placeholder="Room 204B" />
+            </div>
+            <div>
+              <div className="cx-label">Care level</div>
+              <input className="cx-input" value={editForm.careLevel} onChange={(e) => setEditForm((s) => ({ ...s, careLevel: e.target.value }))} placeholder="Routine" />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" className="cx-btn cx-btn-primary" onClick={saveEdit} disabled={savingEdit}>{savingEdit ? "Saving..." : "Save"}</button>
+              <button type="button" className="cx-btn cx-btn-quiet" onClick={() => setEditing(false)} disabled={savingEdit}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="cx-panel" style={{ padding: 20, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
