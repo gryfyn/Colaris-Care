@@ -22,7 +22,13 @@ const STAFF_ROUTES = [
 ];
 
 async function expectNoViewportOverflow(page, route) {
-  await page.goto(route, { waitUntil: 'domcontentloaded' });
+  try {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+  } catch (error) {
+    // A protected route can be aborted when its server redirect and client auth
+    // guard both converge on /login. The destination is still valid for sizing.
+    if (!String(error).includes('ERR_ABORTED') || !page.url().includes('/login')) throw error;
+  }
   await page.waitForTimeout(150);
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
