@@ -32,8 +32,13 @@ export default function DemoForm() {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    // No backend wired yet — capture intent and show confirmation.
     setSubmitted(true);
+    // Relay the demo request to the support inbox (best-effort).
+    fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'demo', ...form }),
+    }).catch(() => {});
   };
 
   return (

@@ -1,6 +1,7 @@
 import { PERMISSIONS } from '@/lib/roles.js';
 import { readJson, withApiContext } from '@/lib/api-helpers.js';
-import { buildPortalCredentialNotice } from '@/lib/portal-credentials.js';
+import { hashPassword } from '@/lib/passwords.js';
+import { buildStaffLoginNotice, generatePortalPassword, normalizePortalEmail } from '@/lib/portal-credentials.js';
 
 function mapStaff(row) {
   return {
@@ -35,6 +36,25 @@ export async function GET(request) {
 export async function POST(request) {
   return withApiContext(request, PERMISSIONS.STAFF_WRITE, 'staff:write', async ({ client, user }) => {
     const body = await readJson(request);
+    const fullName = `${body.firstName || ''} ${body.lastName || ''}`.trim();
+    const loginEmail = normalizePortalEmail(body.email);
+
+    // Provision a real, working staff login when an email is given. The login is
+    // scoped to the admin's own org/facility (taken from their token), so the
+    // new staff can only ever see this facility's data.
+    let userId = body.userId || null;
+    let adminNotification = null;
+    if (loginEmail && body.createLogin !== false) {
+      const password = generatePortalPassword(loginEmail);
+      const passwordHash = hashPassword(password);
+      const { rows: prov } = await client.query(
+        'select * from app.provision_staff_login($1, $2, $3, $4, $5)',
+        [user.organizationId, user.facilityId, loginEmail, fullName, passwordHash]
+      );
+      userId = prov[0].out_user_id;
+      adminNotification = buildStaffLoginNotice({ loginEmail, name: fullName, password, created: prov[0].out_created });
+    }
+
     const { rows } = await client.query(
       `
         insert into care.staff_profiles(
@@ -47,7 +67,7 @@ export async function POST(request) {
       [
         user.organizationId,
         user.facilityId,
-        body.userId || null,
+        userId,
         body.employeeNumber,
         body.firstName,
         body.lastName,
@@ -58,11 +78,6 @@ export async function POST(request) {
       ]
     );
     const staff = mapStaff(rows[0]);
-    const adminNotification = buildPortalCredentialNotice({
-      email: staff.email,
-      name: staff.name,
-      portal: 'staff',
-    });
     return adminNotification ? { ...staff, adminNotification } : staff;
   });
 }

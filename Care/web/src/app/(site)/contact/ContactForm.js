@@ -15,6 +15,12 @@ export default function ContactForm() {
   const onSubmit = (e) => {
     e.preventDefault();
     setSubmitted(true);
+    // Relay to the support inbox (best-effort; the thank-you shows regardless).
+    fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'contact', ...form }),
+    }).catch(() => {});
   };
 
   return (

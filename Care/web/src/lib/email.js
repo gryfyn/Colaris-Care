@@ -1,6 +1,6 @@
 // Transactional email via the Resend REST API (no SDK). Safe no-op when
 // RESEND_API_KEY is absent so flows can fall back to an in-app verify link.
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, replyTo }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM || 'Colaris <onboarding@resend.dev>';
   if (!apiKey) return { sent: false, reason: 'not_configured' };
@@ -8,7 +8,7 @@ export async function sendEmail({ to, subject, html, text }) {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to, subject, html, text }),
+      body: JSON.stringify({ from, to, subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { sent: false, reason: data?.message || `http_${res.status}` };
