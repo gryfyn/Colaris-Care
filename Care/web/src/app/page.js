@@ -121,6 +121,7 @@ export default function LandingPage() {
             <BrandLogo />
           </a>
           <nav className={styles.navLinks}>
+            <a className={styles.navLink} href="/care">Colaris Care</a>
             <a className={styles.navLink} href="/solutions">Solutions</a>
             <a className={styles.navLink} href="/websites">Websites</a>
             <a className={styles.navLink} href="/pricing">Pricing</a>
@@ -128,8 +129,8 @@ export default function LandingPage() {
           </nav>
           <div className={styles.navActions}>
             <a className={styles.navSignin} href="/login">Client sign in</a>
-            <a className={styles.btnPrimary} href="/contact">
-              Start a project <ArrowRight size={16} />
+            <a className={styles.btnPrimary} href="/care">
+              Open Colaris Care <ArrowRight size={16} />
             </a>
           </div>
         </div>
@@ -150,10 +151,10 @@ export default function LandingPage() {
                 right care with confidence.
               </p>
               <div className={styles.heroCtas}>
-                <a className={styles.btnPrimary} href="/solutions">
-                  Explore solutions <ArrowRight size={16} />
+                <a className={styles.btnPrimary} href="/care">
+                  Explore Colaris Care <ArrowRight size={16} />
                 </a>
-                <a className={styles.btnGhost} href="/websites">Build your website</a>
+                <a className={styles.btnGhost} href="/login">Sign in to your workspace</a>
               </div>
               <div className={styles.heroMeta}>
                 <span className={styles.heroMetaItem}><Check size={15} /> Healthcare software</span>
