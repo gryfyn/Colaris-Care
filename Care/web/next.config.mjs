@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const APP_ROOT = dirname(fileURLToPath(import.meta.url));
+const WORKSPACE_ROOT = resolve(APP_ROOT, '..', '..');
+
 // Content-Security-Policy
 //
 // Key decisions:
@@ -38,7 +44,7 @@ const nextConfig = {
   // This app lives below a second workspace lockfile. Pin Turbopack here so
   // route discovery and src/proxy.js resolution do not drift to the monorepo root.
   turbopack: {
-    root: import.meta.dirname,
+    root: WORKSPACE_ROOT,
   },
 
   // Security headers
