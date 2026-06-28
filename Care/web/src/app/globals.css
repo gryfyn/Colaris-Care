@@ -815,7 +815,7 @@ img, video, canvas { height: auto; }
   .cx-adl-table { overflow-x:auto; }
   .cx-adl-head, .cx-adl-row { min-width:620px; }
   .cx-dynamic-row { grid-template-columns:1fr; }
-  .cx-icon-btn { width:100%; }
+  .cx-dynamic-row > .cx-icon-btn { width:100%; }
 }
 
 /* Table */
@@ -1187,3 +1187,68 @@ img, video, canvas { height: auto; }
 .cx-picklist { columns:2; column-gap:14px; }
 .cx-picklist > * { break-inside:avoid; }
 @media (max-width: 640px) { .cx-picklist { columns:1; } .cx-swatches { grid-template-columns:repeat(2,1fr); } }
+
+/* Mobile route hardening. All portal routes render inside the shared .cx-app
+   shell, so these rules cover admin and staff pages without changing themes. */
+@media (max-width: 700px) {
+  .cx-top { min-width:0; gap:10px; }
+  .cx-top > div:not(.cx-top-right) { min-width:0; }
+  .cx-top-title, .cx-top-sub { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cx-top-right { flex:0 0 auto; gap:6px; }
+  .cx-top-right > .cx-facility:not(.cx-icon-btn):not(.cx-staff-clock-btn) { display:none; }
+  .cx-top-right .cx-icon-btn, .cx-top-right .cx-avatar-btn { width:36px; height:36px; flex:0 0 auto; }
+  .cx-toolbar { align-items:stretch; }
+  .cx-toolbar .cx-search { width:100%; max-width:none; min-width:0; flex-basis:100%; }
+  .cx-toolbar .cx-tb-spacer { display:none; }
+  .cx-toolbar > .cx-btn { flex:1 1 auto; justify-content:center; }
+  .cx-chips { width:100%; overflow-x:auto; flex-wrap:nowrap; padding-bottom:2px; scrollbar-width:thin; }
+  .cx-chip { flex:0 0 auto; }
+  .cx-tablewrap, .admin-table-wrap { border-radius:10px; }
+  .cx-tblscroll, .admin-table-scroll { -webkit-overflow-scrolling:touch; }
+  .cx-tblscroll::after, .admin-table-scroll::after { content:""; display:block; width:1px; height:1px; }
+  .cx-feed-item { min-width:0; padding:12px 14px; }
+  .cx-feed-main { flex:1; }
+  .cx-feed-t, .cx-feed-s { overflow-wrap:anywhere; }
+  .cx-feed-time { white-space:normal; text-align:right; }
+  .cx-ob-backdrop { align-items:end; padding:0; }
+  .cx-ob, .cx-ob-backdrop > [role="dialog"] { width:100% !important; max-width:100% !important; max-height:min(92dvh, 92vh) !important; border-radius:18px 18px 0 0 !important; }
+  .cx-ob-head { padding:20px 18px 4px; }
+  .cx-ob-body { padding:14px 18px; }
+  .cx-ob-foot { padding:14px 18px max(18px, env(safe-area-inset-bottom)); flex-wrap:wrap; }
+  .cx-ob-foot .cx-ob-step { width:100%; }
+}
+
+@media (max-width: 600px) {
+  .cx-page, .cx-wide { width:100%; min-width:0; }
+  .cx-head { gap:12px; margin-bottom:18px; }
+  .cx-head > div { min-width:0; }
+  .cx-head > div:last-child:not(:first-child) { width:100%; margin-left:0 !important; }
+  .cx-head > div:last-child:not(:first-child) > .cx-btn,
+  .cx-head > div:last-child:not(:first-child) > a,
+  .cx-head > div:last-child:not(:first-child) > button { width:100%; justify-content:center; }
+  .cx-h1, .cx-lede, .cx-sec-title, .cx-sec-note { overflow-wrap:anywhere; }
+  .cx-section { grid-template-columns:26px minmax(0,1fr); }
+  .cx-sec-body { padding-left:10px; }
+  .cx-node { width:24px; height:24px; }
+  .cx-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .cx-stat { min-width:0; padding:14px; }
+  .cx-stat-lbl { overflow-wrap:anywhere; }
+  .cx-actionbar { padding-bottom:max(11px, env(safe-area-inset-bottom)); }
+  .cx-actionbar .cx-btn { flex:1 1 120px; justify-content:center; }
+  .cx-panel-h, .cx-card, .cx-panel > div { min-width:0; }
+  .cx-done { margin:10px auto; padding:36px 14px; }
+}
+
+@media (max-width: 420px) {
+  .cx-content { padding-inline:12px; }
+  .cx-top { padding-inline:12px; }
+  .cx-top-sub { display:none; }
+  .cx-top-right > [aria-label="Search"],
+  .cx-top-right > [aria-label="Settings"] { display:none; }
+  .cx-stats { gap:8px; }
+  .cx-stat-val { font-size:20px; }
+  .cx-btn { padding-inline:12px; }
+  .cx-avatar-pop { position:fixed; top:58px; right:10px; left:10px; min-width:0; }
+  .cx-account-actions { margin-left:0; }
+  .cx-session-row .cx-btn, .cx-session-row .cx-badge { margin-left:0; }
+}

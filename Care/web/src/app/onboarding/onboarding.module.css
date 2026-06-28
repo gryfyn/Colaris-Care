@@ -73,5 +73,9 @@
 .btnGhost:hover { border-color:var(--teal); color:var(--teal); }
 
 @media (max-width:560px) {
+  .page { padding:16px 10px max(16px, env(safe-area-inset-bottom)); }
+  .card { padding:22px 16px; border-radius:16px; }
   .grid, .layouts { grid-template-columns:1fr; }
+  .actions > * { width:100%; justify-content:center; }
+  .swatches { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }

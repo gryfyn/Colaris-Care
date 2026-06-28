@@ -35,6 +35,11 @@ const CSP = [
 ].join('; ');
 
 const nextConfig = {
+  // This app lives below a second workspace lockfile. Pin Turbopack here so
+  // route discovery and src/proxy.js resolution do not drift to the monorepo root.
+  turbopack: {
+    root: import.meta.dirname,
+  },
 
   // Security headers
   headers: async () => [

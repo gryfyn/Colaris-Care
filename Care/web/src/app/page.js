@@ -7,7 +7,7 @@ import {
   AlertTriangle, CreditCard, MessageSquare, BarChart2, HeartPulse,
   Sparkles, ArrowRight, ArrowUpRight, Check, Bell, Clock3,
   FileCheck2, LayoutDashboard, Settings, TrendingUp,
-  Globe2, MonitorSmartphone, SearchCheck, Palette,
+  Globe2, MonitorSmartphone, SearchCheck, Palette, Menu,
 } from 'lucide-react';
 import styles from './page.module.css';
 import BrandLogo from './(site)/_lib/BrandLogo';
@@ -127,6 +127,18 @@ export default function LandingPage() {
             <a className={styles.navLink} href="/pricing">Pricing</a>
             <a className={styles.navLink} href="/about">Company</a>
           </nav>
+          <details className={styles.mobileMenu}>
+            <summary aria-label="Open navigation"><Menu size={20} /></summary>
+            <nav className={styles.mobileMenuPanel} aria-label="Mobile navigation">
+              <a href="/care">Colaris Care</a>
+              <a href="/solutions">Solutions</a>
+              <a href="/websites">Websites</a>
+              <a href="/pricing">Pricing</a>
+              <a href="/about">Company</a>
+              <a href="/login">Client sign in</a>
+              <a className={styles.mobileMenuCta} href="/care">Open Colaris Care <ArrowRight size={15} /></a>
+            </nav>
+          </details>
           <div className={styles.navActions}>
             <a className={styles.navSignin} href="/login">Client sign in</a>
             <a className={styles.btnPrimary} href="/care">

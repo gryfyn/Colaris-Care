@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Menu } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 import styles from '../site.module.css';
 
@@ -42,6 +42,14 @@ export function SiteNav() {
             </Link>
           ))}
         </nav>
+        <details className={styles.mobileMenu}>
+          <summary aria-label="Open navigation"><Menu size={20} /></summary>
+          <nav className={styles.mobileMenuPanel} aria-label="Mobile navigation">
+            {NAV_LINKS.map(({ label, href }) => <Link key={href} href={href}>{label}</Link>)}
+            <Link href="/login">Client sign in</Link>
+            <Link className={styles.mobileMenuCta} href="/contact">Start a project <ArrowRight size={15} /></Link>
+          </nav>
+        </details>
         <div className={styles.navActions}>
           <Link className={styles.navSignin} href="/login">Client sign in</Link>
           <Link className={styles.btnPrimary} href="/contact">
