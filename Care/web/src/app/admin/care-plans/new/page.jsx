@@ -3,10 +3,12 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, HeartPulse, Loader2, Plus, Target, X } from "lucide-react";
+import { ArrowLeft, HeartPulse, Loader2, Plus, Target, UploadCloud, X } from "lucide-react";
 import { Avatar, EmptyState, PageHeader, Panel } from "@/components/ui/data";
 import { Field, TextField, SelectField, TextAreaField } from "@/components/ui/fields";
 import { apiData } from "@/lib/client-api";
+import { getAccessToken } from "@/lib/client-auth";
+import { mergeParsedCarePlan } from "@/lib/care-plan-schema";
 
 const EMPTY_GOAL = { title: "", progress: "On track" };
 const EMPTY_OBJECTIVE = { title: "", goal: "", cadence: "" };
@@ -58,8 +60,40 @@ function NewCarePlanForm() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState("");
 
   const set = (key) => (value) => setV((s) => ({ ...s, [key]: value }));
+
+  // Upload a care-plan document (PDF/Word) and merge the AI-extracted fields
+  // over the current form — an alternative to filling it out by hand.
+  async function onUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    setError("");
+    setImportNote("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = getAccessToken();
+      const res = await fetch("/api/v1/care-plans/parse", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || "Could not read the document.");
+      const data = payload.data || {};
+      if (data.parsed) setV((s) => mergeParsedCarePlan(s, data.fields));
+      setImportNote(data.parsed ? `Imported "${file.name}". Review the plan before saving.` : (data.warning || "Please complete the fields."));
+    } catch (err) {
+      setError(err.message || "Upload failed.");
+    } finally {
+      setImporting(false);
+    }
+  }
   const updateRow = (key, index, field, value) =>
     setV((s) => ({ ...s, [key]: s[key].map((r, i) => (i === index ? { ...r, [field]: value } : r)) }));
   const addRow = (key, row) => setV((s) => ({ ...s, [key]: [...s[key], row] }));
@@ -131,6 +165,25 @@ function NewCarePlanForm() {
           </div>
         </div>
       </div>
+
+      <div className="cx-panel" style={{ padding: 16, marginBottom: 18, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 240 }}>
+          <UploadCloud size={22} color="#1a56db" />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Upload a care plan to auto-fill</div>
+            <div style={{ fontSize: 12.5, color: "var(--cx-muted)" }}>PDF or Word. We extract the plan focus, goals, objectives, and interventions with AI for you to review.</div>
+          </div>
+        </div>
+        <label className="cx-btn cx-btn-ghost" style={{ cursor: importing ? "default" : "pointer" }}>
+          {importing ? <><Loader2 size={15} className="cx-spin" /> Reading...</> : <><UploadCloud size={15} /> Upload care plan</>}
+          <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} disabled={importing} onChange={onUpload} />
+        </label>
+      </div>
+      {importNote && (
+        <div className="cx-panel" role="status" aria-live="polite" style={{ padding: "12px 16px", marginBottom: 18, fontSize: 13, color: "#047857", background: "#ecfdf5", border: "1px solid #6ee7b7" }}>
+          {importNote}
+        </div>
+      )}
 
       <Panel title="Plan details" pad>
         <div className="cx-grid">

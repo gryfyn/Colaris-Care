@@ -11,6 +11,29 @@ const FALLBACK = [
   { id: "INC-2041", residentName: "Marcus Bell", incidentType: "Behavioral episode", severity: "low", status: "closed", occurredAt: "2026-06-17T12:10:00Z", summary: "Reviewed and closed.", followUpDueAt: null },
 ];
 
+// Map the incident parse response onto the RecordFormModal field names.
+function toDatetimeLocal(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text}T00:00`;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function incidentValuesFromParse(data) {
+  const f = data?.fields || {};
+  return {
+    incidentType: f.incidentType || "",
+    severity: f.severity || "",
+    status: f.status || "",
+    summary: f.summary || "",
+    occurredAt: toDatetimeLocal(f.occurredAt),
+    followUpDueAt: /^\d{4}-\d{2}-\d{2}$/.test(f.followUpDueAt || "") ? f.followUpDueAt : "",
+  };
+}
+
 function normalize(item) {
   return {
     id: item.id,
@@ -90,6 +113,7 @@ export default function AdminIncidentsPage() {
           submitLabel="File report"
           onClose={() => setAdding(false)}
           onSubmit={createIncident}
+          parse={{ endpoint: "/api/v1/incidents/parse", toValues: incidentValuesFromParse, label: "Upload an incident report to auto-fill" }}
           fields={[
             { name: "incidentType", label: "Incident type", required: true, span2: true, placeholder: "e.g. Fall, Behavioral episode" },
             { name: "resident", label: "Resident", type: "select", options: residentOptions },
