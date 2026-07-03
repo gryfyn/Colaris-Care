@@ -3,22 +3,36 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { usePrefs, NAV_GROUPS, THEMES } from "./prefs";
+import { apiData } from "@/lib/client-api";
 
 export default function Onboarding() {
-  const { prefs, mounted, setTheme: applyTheme, finishOnboarding } = usePrefs();
+  const { prefs, mounted, serverHydrated, setTheme: applyTheme, finishOnboarding } = usePrefs();
   const [theme, setTheme] = useState("spruce");
+  const [saving, setSaving] = useState(false);
   const [sidebar, setSidebar] = useState(() => {
     const s = {};
     NAV_GROUPS.flatMap((g) => g.items).forEach((i) => { s[i.id] = true; });
     return s;
   });
 
-  if (!mounted || prefs.onboarded) return null;
+  // Wait for the server check so this never flashes for a user who already
+  // onboarded at signup (their theme/onboarded lives in facility settings).
+  if (!mounted || !serverHydrated || prefs.onboarded) return null;
 
   const toggle = (id) => setSidebar((s) => ({ ...s, [id]: !s[id] }));
   const selectTheme = (id) => {
     setTheme(id);
     applyTheme(id);
+  };
+
+  // Persist onboarding to the facility so the modal never returns on any device,
+  // then finish locally. The local finish still applies even if the save fails.
+  const complete = async () => {
+    setSaving(true);
+    try {
+      await apiData("/api/v1/facility", { method: "PATCH", body: JSON.stringify({ theme, onboarded: true }) });
+    } catch { /* non-fatal: still onboarded locally */ }
+    finishOnboarding({ theme, sidebar });
   };
 
   return (
@@ -73,8 +87,8 @@ export default function Onboarding() {
         <div className="cx-ob-foot">
           <span className="cx-ob-step">Settings is always available.</span>
           <span style={{ marginLeft: "auto" }} />
-          <button className="cx-btn cx-btn-primary" onClick={() => finishOnboarding({ theme, sidebar })}>
-            Get started
+          <button className="cx-btn cx-btn-primary" onClick={complete} disabled={saving}>
+            {saving ? "Saving..." : "Get started"}
           </button>
         </div>
       </div>

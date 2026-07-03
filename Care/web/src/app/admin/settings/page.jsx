@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Bell, Building2, Check, CreditCard, Download, KeyRound, LayoutGrid, LogOut,
+  Bell, Building2, Check, CreditCard, KeyRound, LayoutGrid, LogOut,
   Monitor, Palette, RotateCcw, Search, Shield, ShieldCheck,
   SlidersHorizontal, UserCheck, UserPlus, Users, UserX,
 } from "lucide-react";
@@ -12,13 +12,6 @@ import { apiData } from "@/lib/client-api";
 import { NAV_GROUPS, THEMES, TOPBAR_ITEMS, usePrefs } from "@/components/app/prefs";
 
 const ROLES = ["Super Admin", "Facility Admin", "Manager", "Nurse", "Caregiver", "Family Member"];
-const INVOICES = [
-  { date: "Jun 1, 2026", number: "INV-2026-0601", description: "Colaris Care - June 2026", amount: "$1,368.00", status: "Paid" },
-  { date: "May 1, 2026", number: "INV-2026-0501", description: "Colaris Care - May 2026", amount: "$1,368.00", status: "Paid" },
-  { date: "Apr 1, 2026", number: "INV-2026-0401", description: "Colaris Care - April 2026", amount: "$1,368.00", status: "Paid" },
-  { date: "Mar 8, 2026", number: "CR-2026-0308", description: "Seat adjustment credit", amount: "-$57.00", status: "Refunded" },
-  { date: "Mar 1, 2026", number: "INV-2026-0301", description: "Colaris Care - March 2026", amount: "$1,311.00", status: "Failed" },
-];
 const SESSIONS = [
   { device: "Chrome on Windows", location: "Portland, OR", active: "Current session", current: true },
 ];
@@ -49,10 +42,11 @@ export default function SettingsPage() {
   const { prefs, setTheme, toggleSidebar, toggleTopbar, resetOnboarding } = usePrefs();
   const [active, setActive] = useState("facility");
   const tabRefs = useRef([]);
-  const [f, setF] = useState({ name: "Maple Grove Care", legal: "Maple Grove Care LLC", address: "1420 Birchwood Ave, Portland, OR 97201", phone: "(555) 014-0100", email: "hello@maplegrove.example", timezone: "America/Los_Angeles", capacity: "60" });
+  const [f, setF] = useState({ name: "", legal: "", address: "", phone: "", email: "", timezone: "America/New_York", capacity: "" });
   const [prefsLocal, setPrefsLocal] = useState({ fallRisk: true, requireContact: false, twoFactor: true });
   const [notifications, setNotifications] = useState({ admissionsEmail: true, admissionsApp: true, incidentsEmail: true, incidentsApp: true, summaryEmail: true, summaryApp: false, receiptsEmail: true, receiptsApp: false });
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
   const [accounts, setAccounts] = useState([]);
   const [me, setMe] = useState(null);
@@ -60,10 +54,29 @@ export default function SettingsPage() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([apiData("/api/v1/staff").catch(() => []), apiData("/api/auth/me").catch(() => null)]).then(([staff, auth]) => {
+    Promise.all([
+      apiData("/api/v1/staff").catch(() => []),
+      apiData("/api/auth/me").catch(() => null),
+      apiData("/api/v1/facility").catch(() => null),
+    ]).then(([staff, auth, facility]) => {
       if (!alive) return;
       setAccounts(staff.map((item) => ({ id: item.id, name: item.name, email: item.email, role: item.roleTitle || "Staff", status: item.status === "inactive" ? "Suspended" : "Active", lastActive: item.updatedAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(item.updatedAt)) : "Recent" })));
       setMe(auth?.user || null);
+      // Populate the Facility tab (and toggles) from the data captured at
+      // onboarding + saved on this page. Falls back to blanks, not fake data.
+      if (facility && facility.id) {
+        setF((state) => ({
+          name: facility.name || "",
+          legal: facility.legalName || "",
+          address: facility.address || "",
+          phone: facility.phone || "",
+          email: facility.email || "",
+          timezone: facility.timezone || state.timezone,
+          capacity: facility.licensedCapacity != null ? String(facility.licensedCapacity) : "",
+        }));
+        if (facility.notifications && typeof facility.notifications === "object") setNotifications((n) => ({ ...n, ...facility.notifications }));
+        if (facility.preferences && typeof facility.preferences === "object") setPrefsLocal((p) => ({ ...p, ...facility.preferences }));
+      }
     });
     return () => { alive = false; };
   }, []);
@@ -96,7 +109,37 @@ export default function SettingsPage() {
     tabRefs.current[next]?.focus();
   };
   const toggleAccount = (id) => setAccounts((rows) => rows.map((row) => row.id === id ? { ...row, status: row.status === "Active" ? "Suspended" : "Active" } : row));
-  const save = () => { setSaved(true); window.setTimeout(() => setSaved(false), 2000); };
+
+  const save = async () => {
+    setSaveError("");
+    try {
+      await apiData("/api/v1/facility", {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: f.name,
+          legalName: f.legal,
+          address: f.address,
+          phone: f.phone,
+          email: f.email,
+          timezone: f.timezone,
+          licensedCapacity: f.capacity === "" ? null : Number(f.capacity),
+          notifications,
+          preferences: prefsLocal,
+        }),
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setSaveError(err.message || "Could not save changes.");
+    }
+  };
+
+  // Theme is a facility-level choice — persist it so it follows the team across
+  // devices (and matches what was picked at onboarding).
+  const chooseTheme = async (id) => {
+    setTheme(id);
+    try { await apiData("/api/v1/facility", { method: "PATCH", body: JSON.stringify({ theme: id }) }); } catch { /* local theme still applied */ }
+  };
 
   const facility = <Panel title="Facility profile" pad><div className="cx-grid">
     <TextField label="Facility name" value={f.name} onChange={set("name")} /><TextField label="Legal name" optional value={f.legal} onChange={set("legal")} />
@@ -107,7 +150,7 @@ export default function SettingsPage() {
 
   const appearance = <Panel title="Theme" action={<span className="cx-panel-note">Applies instantly</span>} pad>
     {[{ label: "Light", dark: false }, { label: "Dark", dark: true }].map((group) => <div className="cx-theme-group" key={group.label}><div className="cx-theme-group-label">{group.label}</div><div className="cx-swatches">
-      {THEMES.filter((theme) => Boolean(theme.dark) === group.dark).map((theme) => <button type="button" key={theme.id} className="cx-swatch" data-on={prefs.theme === theme.id ? "true" : "false"} onClick={() => setTheme(theme.id)} aria-pressed={prefs.theme === theme.id}><div className="cx-swatch-prev" style={{ background: theme.swatch[0] }}><span className="cx-swatch-dot" style={{ background: theme.swatch[1] }} /></div><div className="cx-swatch-lbl">{theme.label}{prefs.theme === theme.id && <Check size={13} className="cx-swatch-check" />}</div></button>)}
+      {THEMES.filter((theme) => Boolean(theme.dark) === group.dark).map((theme) => <button type="button" key={theme.id} className="cx-swatch" data-on={prefs.theme === theme.id ? "true" : "false"} onClick={() => chooseTheme(theme.id)} aria-pressed={prefs.theme === theme.id}><div className="cx-swatch-prev" style={{ background: theme.swatch[0] }}><span className="cx-swatch-dot" style={{ background: theme.swatch[1] }} /></div><div className="cx-swatch-lbl">{theme.label}{prefs.theme === theme.id && <Check size={13} className="cx-swatch-check" />}</div></button>)}
     </div></div>)}
   </Panel>;
 
@@ -130,10 +173,14 @@ export default function SettingsPage() {
 
   const roles = <Panel title="Roles & access" pad><p className="cx-settings-help">Six built-in roles scope what each person can see and do, within this facility only.</p><div className="cx-role-list">{ROLES.map((role) => <Badge key={role}><span className="cx-bdot cx-role-dot" />{role}</Badge>)}</div></Panel>;
 
-  const billing = <div className="cx-settings-stack"><div className="cx-billing-grid"><Panel title="Current plan" pad><div className="cx-plan-head"><div><Badge tone="green">Care Professional</Badge><div className="cx-plan-price">$1,368 <span>/ month</span></div></div><CreditCard size={24} /></div><dl className="cx-meta-list"><div><dt>Licensed seats</dt><dd>48</dd></div><div><dt>Renews</dt><dd>July 1, 2026</dd></div></dl><button type="button" className="cx-btn cx-btn-ghost">Manage plan</button></Panel><Panel title="Payment method" pad><div className="cx-payment-card"><span className="cx-card-brand">VISA</span><div><strong>Visa ending in 4242</strong><span>Expires 09/28</span></div></div><p className="cx-settings-help">Used for recurring subscription charges.</p><button type="button" className="cx-btn cx-btn-ghost">Update payment method</button></Panel></div>
-    <Panel title="Usage this period" pad><div className="cx-usage-grid"><div><span>Staff seats</span><strong>42 / 48</strong><div className="cx-meter"><i style={{ width: "87.5%" }} /></div></div><div><span>Document storage</span><strong>18.4 / 50 GB</strong><div className="cx-meter"><i style={{ width: "36.8%" }} /></div></div><div><span>Billing period</span><strong>Jun 1-30</strong><small>6 days remaining</small></div></div></Panel>
-    <Panel title="Payment & invoice history"><div className="cx-tblscroll" tabIndex="0" aria-label="Scrollable payment and invoice history"><table className="cx-tbl"><thead><tr><th>Date</th><th>Invoice</th><th>Description</th><th>Amount</th><th>Status</th><th><span className="cx-sr-only">Action</span></th></tr></thead><tbody>{INVOICES.map((invoice) => <tr key={invoice.number}><td>{invoice.date}</td><td className="cx-tnum">{invoice.number}</td><td>{invoice.description}</td><td className="cx-tnum"><b>{invoice.amount}</b></td><td><Badge tone={STATUS_TONES[invoice.status]} dot>{invoice.status}</Badge></td><td><button type="button" className="cx-btn cx-btn-quiet"><Download size={14} /> {invoice.status === "Failed" ? "View" : "Download"}</button></td></tr>)}</tbody></table></div></Panel>
-  </div>;
+  const billing = <Panel title="Billing & payments" pad>
+    <div className="cx-empty2">
+      <div className="cx-empty-ico"><CreditCard size={22} strokeWidth={1.9} /></div>
+      <h3>Billing is coming soon</h3>
+      <p>Plans, invoices, and payment methods will be available here shortly. Your facility is fully active in the meantime — no action is needed.</p>
+      <Badge tone="blue" dot>Module coming soon</Badge>
+    </div>
+  </Panel>;
 
   const notificationRows = [
     { id: "admissions", title: "New admissions", note: "When a new resident admission is started or completed." },
@@ -151,7 +198,7 @@ export default function SettingsPage() {
   const panels = { facility, appearance, layout, account, preferences, roles, billing, notifications: notificationsPanel, security };
   const activeLabel = TABS.find((tab) => tab.id === active)?.label;
 
-  return <div className="cx-wide cx-settings-page"><PageHeader eyebrow="Configuration" title="Settings" lede="Your facility's identity, appearance, and how Colaris behaves for your team." action={<button type="button" className="cx-btn cx-btn-primary" onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save changes"}</button>} />
+  return <div className="cx-wide cx-settings-page"><PageHeader eyebrow="Configuration" title="Settings" lede="Your facility's identity, appearance, and how Colaris behaves for your team." action={<div style={{ display: "flex", alignItems: "center", gap: 10 }}>{saveError && <span style={{ fontSize: 12.5, color: "var(--cx-danger, #b42318)" }}>{saveError}</span>}<button type="button" className="cx-btn cx-btn-primary" onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save changes"}</button></div>} />
     <div className="cx-set-cols"><nav className="cx-set-nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">{TABS.map((tab, index) => { const Icon = tab.icon; const selected = active === tab.id; return <button type="button" role="tab" id={`tab-${tab.id}`} aria-controls={`panel-${tab.id}`} aria-selected={selected} tabIndex={selected ? 0 : -1} className={selected ? "on" : undefined} key={tab.id} onClick={() => selectTab(tab.id)} onKeyDown={(event) => handleTabKey(event, index)} ref={(node) => { tabRefs.current[index] = node; }}><Icon size={16} />{tab.label}</button>; })}</nav>
       <main className="cx-settings-detail" id={`panel-${active}`} role="tabpanel" aria-labelledby={`tab-${active}`} tabIndex="0"><div className="cx-mobile-section-label">{activeLabel}</div>{panels[active]}</main>
     </div>

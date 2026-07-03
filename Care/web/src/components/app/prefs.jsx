@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
   LayoutDashboard, UserPlus, Users, HeartPulse, Settings,
   Pill, BarChart3, ShieldCheck, FileText, CalendarClock, Megaphone, Calendar,
@@ -122,6 +122,7 @@ export const THEMES = [
 ];
 
 const STORAGE_KEY = "colaris.prefs.v1";
+const THEME_IDS = new Set(THEMES.map((t) => t.id));
 
 export function defaultPrefs() {
   const sidebar = {};
@@ -139,6 +140,11 @@ export const usePrefs = () => useContext(PrefsCtx);
 export function PrefsProvider({ children }) {
   const [prefs, setPrefs] = useState(defaultPrefs);
   const [mounted, setMounted] = useState(false);
+  // Whether the facility settings have been checked on the server yet. The
+  // onboarding modal waits for this so it never flashes for a user who already
+  // onboarded at signup (their theme/onboarded lives in care.facilities.settings,
+  // not this browser's localStorage).
+  const [serverHydrated, setServerHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -173,8 +179,21 @@ export function PrefsProvider({ children }) {
   const finishOnboarding = (patch) => setPrefs((p) => ({ ...p, ...patch, onboarded: true }));
   const resetOnboarding = () => setPrefs((p) => ({ ...p, onboarded: false }));
 
+  // Adopt the facility's server-side theme + onboarded marker. Called once by
+  // the shells after auth. Server theme is facility-authoritative (chosen at
+  // onboarding); onboarded is sticky (never flips a completed setup back off).
+  const hydrateServer = useCallback((facility = {}) => {
+    setPrefs((p) => {
+      const next = { ...p };
+      if (facility.theme && THEME_IDS.has(facility.theme)) next.theme = facility.theme;
+      if (facility.onboarded) next.onboarded = true;
+      return next;
+    });
+    setServerHydrated(true);
+  }, []);
+
   return (
-    <PrefsCtx.Provider value={{ prefs, mounted, update, toggleSidebar, toggleTopbar, toggleStaffSidebar, toggleStaffTopbar, setTheme, setSidebarCollapsed, finishOnboarding, resetOnboarding }}>
+    <PrefsCtx.Provider value={{ prefs, mounted, serverHydrated, update, toggleSidebar, toggleTopbar, toggleStaffSidebar, toggleStaffTopbar, setTheme, setSidebarCollapsed, finishOnboarding, resetOnboarding, hydrateServer }}>
       {children}
     </PrefsCtx.Provider>
   );

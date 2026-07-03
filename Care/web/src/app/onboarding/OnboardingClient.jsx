@@ -68,7 +68,9 @@ export default function OnboardingClient() {
       // Apply the chosen look to this browser so the portal opens themed.
       try {
         const cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, theme, sidebarCollapsed: layout === "compact" }));
+        // Mark onboarded: the theme was chosen here at signup, so the in-app
+        // setup modal must not appear afterwards.
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, theme, onboarded: true, sidebarCollapsed: layout === "compact" }));
       } catch {}
       setGate("done");
     } catch {

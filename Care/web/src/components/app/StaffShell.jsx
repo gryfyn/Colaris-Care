@@ -71,7 +71,17 @@ export default function StaffShell({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { prefs, setSidebarCollapsed } = usePrefs();
+  const { prefs, setSidebarCollapsed, hydrateServer } = usePrefs();
+
+  // Adopt the facility's saved theme from the server so staff see the same look
+  // the facility chose at onboarding.
+  useEffect(() => {
+    let alive = true;
+    apiData("/api/v1/facility")
+      .then((f) => { if (alive) hydrateServer(f || {}); })
+      .catch(() => { if (alive) hydrateServer({}); });
+    return () => { alive = false; };
+  }, [hydrateServer]);
 
   // Identity comes from the auth store. Read it only after mount so the server
   // and first client render agree (the store hydrates from localStorage on the

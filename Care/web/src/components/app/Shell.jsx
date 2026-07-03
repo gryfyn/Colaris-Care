@@ -12,6 +12,7 @@ import { usePrefs, NAV_GROUPS, NAV_FLAT, SETTINGS_ITEM } from "./prefs";
 import Onboarding from "./Onboarding";
 import { useAuthGuard } from "./AuthGuard";
 import { logout } from "@/lib/client-auth";
+import { apiData } from "@/lib/client-api";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useUnreadCount } from "@/lib/use-unread";
 
@@ -46,7 +47,18 @@ export default function Shell({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { prefs, setSidebarCollapsed } = usePrefs();
+  const { prefs, setSidebarCollapsed, hydrateServer } = usePrefs();
+
+  // Adopt the facility's saved theme + onboarding state from the server so the
+  // setup modal only appears for a genuinely un-onboarded facility (i.e. at
+  // signup), not on every login / new device.
+  useEffect(() => {
+    let alive = true;
+    apiData("/api/v1/facility")
+      .then((f) => { if (alive) hydrateServer(f || {}); })
+      .catch(() => { if (alive) hydrateServer({}); });
+    return () => { alive = false; };
+  }, [hydrateServer]);
 
   // Identity comes from the auth store. Read it only after mount so the server
   // and first client render agree (the store hydrates from localStorage on the

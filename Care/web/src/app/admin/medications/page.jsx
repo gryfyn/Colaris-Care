@@ -119,6 +119,14 @@ export default function AdminMedicationsPage() {
           submitLabel="Prescribe"
           onClose={() => setShowPrescription(false)}
           onSubmit={createMedication}
+          parse={{
+            endpoint: "/api/v1/medications/parse",
+            label: "Upload a physician order or med list to auto-fill",
+            toValues: (data) => {
+              const f = data?.fields || {};
+              return { name: f.name || "", dosage: f.dosage || "", route: f.route || "", frequency: f.frequency || "", prescriber: f.prescriber || "" };
+            },
+          }}
           fields={[
             { name: "resident", label: "Resident", type: "select", required: true, span2: true, placeholder: "Select resident", options: residentOptions },
             { name: "name", label: "Drug name", required: true, placeholder: "e.g. Sertraline" },
