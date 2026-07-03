@@ -11,39 +11,15 @@ import {
   SegmentedField,
 } from "@/components/ui/fields";
 import { apiData, displayDate } from "@/lib/client-api";
+import { getAccessToken } from "@/lib/client-auth";
 import { uploadPortrait } from "@/lib/cloudinary-upload";
 import { uploadDocument } from "@/lib/r2-upload";
-
-const CONDITION_OPTIONS = [
-  "Diabetes",
-  "Hypertension",
-  "COPD",
-  "Depression",
-  "Fall history",
-  "Seizure disorder",
-  "CHF",
-  "Chronic pain",
-];
-
-const BEHAVIORAL_CONCERNS = [
-  "Aggression",
-  "Wandering",
-  "Elopement Risk",
-  "Self Harm Risk",
-  "Suicide Risk",
-  "Property Destruction",
-  "Fall Risk",
-];
-
-const ADL_ITEMS = [
-  "Eating",
-  "Bathing",
-  "Dressing",
-  "Grooming",
-  "Toileting",
-  "Transfers",
-  "Walking",
-];
+import {
+  CONDITION_OPTIONS,
+  BEHAVIORAL_CONCERNS,
+  ADL_ITEMS,
+  mergeParsedAdmission,
+} from "@/lib/admission-schema";
 
 const DOCUMENT_TYPES = [
   "Admission Assessment",
@@ -207,6 +183,8 @@ export default function AdmissionForm() {
   const [adminNotification, setAdminNotification] = useState(null);
   const [toast, setToast] = useState("");
   const [facilityName, setFacilityName] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
 
   // Pre-fill the facility from the onboarding profile so it isn't re-typed.
   useEffect(() => {
@@ -265,6 +243,44 @@ export default function AdmissionForm() {
 
   function setDocument(type, file) {
     setV((state) => ({ ...state, documents: { ...state.documents, [type]: file } }));
+  }
+
+  // Upload an admission packet (PDF/Word) and merge the AI-extracted fields over
+  // the current wizard state — an alternative to filling everything by hand. The
+  // file is also stashed as the Admission Assessment document so it is stored on
+  // submit. Never destructive: only fields the parser filled are overwritten.
+  async function onUploadAdmission(file) {
+    if (!file) return;
+    setImporting(true);
+    setImportMsg("");
+    setToast("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = getAccessToken();
+      const res = await fetch("/api/v1/admissions/parse", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || "Could not read the document.");
+      const data = payload.data || {};
+      setV((state) => {
+        const merged = data.parsed ? mergeParsedAdmission(state, data.fields) : state;
+        return { ...merged, documents: { ...merged.documents, "Admission Assessment": file } };
+      });
+      setErrors({});
+      setImportMsg(
+        data.parsed
+          ? `Imported "${file.name}". Review every section — required fields still need your confirmation before submitting.`
+          : data.warning || "Attached the document; please complete the fields."
+      );
+    } catch (error) {
+      setToast(error.message || "Upload failed.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   function serializeAdmissionPayload() {
@@ -456,6 +472,33 @@ export default function AdmissionForm() {
           </div>
         </div>
       </div>
+
+      <div className="cx-card" style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 240 }}>
+          <UploadCloud size={22} color="#1a56db" />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Upload an admission form to auto-fill</div>
+            <div style={{ fontSize: 12.5, color: "var(--cx-faint)" }}>
+              PDF or Word. We extract the fields with AI for you to review — an alternative to filling everything by hand. The file is kept as the Admission Assessment document.
+            </div>
+          </div>
+        </div>
+        <label className="cx-btn cx-btn-ghost" style={{ cursor: importing ? "default" : "pointer" }}>
+          {importing ? <><Loader2 size={15} className="cx-spin" /> Reading...</> : <><UploadCloud size={15} /> Upload admission form</>}
+          <input
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            style={{ display: "none" }}
+            disabled={importing}
+            onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; onUploadAdmission(file); }}
+          />
+        </label>
+      </div>
+      {importMsg && (
+        <div className="cx-card" role="status" aria-live="polite" style={{ marginBottom: 18, fontSize: 13, color: "#047857", background: "#ecfdf5", border: "1px solid #6ee7b7" }}>
+          {importMsg}
+        </div>
+      )}
 
       <Section
         n={1}

@@ -1,5 +1,6 @@
 import { requireUser, AuthError, authErrorResponse } from '@/lib/auth-guard.js';
 import { PERMISSIONS } from '@/lib/roles.js';
+import { extractDocumentText, DocumentExtractError } from '@/lib/document-extract.js';
 import {
   normalizeNoteBody,
   MOOD_BEHAVIOR_OPTIONS,
@@ -14,7 +15,6 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const MAX_BYTES = 15 * 1024 * 1024; // 15MB
 const DEFAULT_MODEL = process.env.PROGRESS_NOTE_PARSE_MODEL || 'anthropic/claude-haiku-4.5';
 
 // POST /api/v1/daily-progress-notes/parse   (multipart/form-data, field: file)
@@ -28,74 +28,19 @@ export async function POST(request) {
     await requireUser(request, PERMISSIONS.PROGRESS_NOTES_WRITE);
 
     const form = await request.formData().catch(() => null);
-    const file = form?.get('file');
-    if (!file || typeof file.arrayBuffer !== 'function') {
-      return bad('No file uploaded. Attach a PDF or Word document.', 422);
-    }
-    if (file.size > MAX_BYTES) {
-      return bad('File is too large (max 15MB).', 413);
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const kind = fileKind(file.name || '', file.type || '');
-    if (!kind) {
-      return bad('Unsupported file type. Upload a PDF (.pdf) or Word (.docx) file.', 415);
-    }
-
-    let text = '';
-    try {
-      text = kind === 'pdf' ? await extractPdf(buffer) : await extractDocx(buffer);
-    } catch (err) {
-      return bad(`Could not read the ${kind.toUpperCase()} file: ${err.message}`, 422);
-    }
-    text = (text || '').trim();
-    if (!text) {
-      return bad('The document appears to be empty or image-only (no extractable text).', 422);
-    }
+    const { text } = await extractDocumentText(form?.get('file'));
 
     const result = await extractFields(text);
     return Response.json({ data: result });
   } catch (err) {
+    if (err instanceof DocumentExtractError) {
+      return Response.json({ error: err.message, code: 'PARSE_ERROR' }, { status: err.status });
+    }
     if (err instanceof AuthError || err?.status === 401 || err?.status === 403) {
       return authErrorResponse(err);
     }
     return Response.json({ error: 'Failed to parse document', code: 'PARSE_ERROR' }, { status: 500 });
   }
-}
-
-function bad(message, status) {
-  return Response.json({ error: message, code: 'PARSE_ERROR' }, { status });
-}
-
-function fileKind(name, type) {
-  const lower = name.toLowerCase();
-  if (type === 'application/pdf' || lower.endsWith('.pdf')) return 'pdf';
-  if (
-    type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    lower.endsWith('.docx')
-  ) {
-    return 'docx';
-  }
-  return null;
-}
-
-async function extractPdf(buffer) {
-  // pdf-parse v2 exposes a PDFParse class (not a default function).
-  const { PDFParse } = await import('pdf-parse');
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  try {
-    const result = await parser.getText();
-    return result?.text || '';
-  } finally {
-    await parser.destroy?.();
-  }
-}
-
-async function extractDocx(buffer) {
-  const mod = await import('mammoth');
-  const mammoth = mod.default || mod;
-  const { value } = await mammoth.extractRawText({ buffer });
-  return value || '';
 }
 
 // Uses the AI Gateway to structure the text. On any failure (missing key, bad
