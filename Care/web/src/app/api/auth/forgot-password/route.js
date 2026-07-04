@@ -10,12 +10,18 @@ function clientIp(request) {
   return request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
 }
 
-function appOrigin(request) {
-  const env = process.env.NEXT_PUBLIC_APP_URL;
-  if (env) return env.replace(/\/$/, '');
-  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
-  const proto = request.headers.get('x-forwarded-proto') || 'https';
-  return host ? `${proto}://${host}` : new URL(request.url).origin;
+// Trusted base URL for the reset link. Never derived from client-controllable
+// Host / X-Forwarded-Host headers (that enables password-reset poisoning: an
+// attacker spoofs the header so the victim's email links to the attacker's
+// domain and leaks the token). Only server-configured / Vercel-provided values
+// are trusted; local dev may fall back to the request origin (localhost).
+function resetOrigin(request) {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (explicit) return explicit.replace(/\/$/, '');
+  const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (vercelHost) return `https://${vercelHost.replace(/\/$/, '')}`;
+  if (process.env.NODE_ENV !== 'production') return new URL(request.url).origin;
+  return null;
 }
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
@@ -56,7 +62,14 @@ export async function POST(request) {
     }
 
     if (rows.length) {
-      const resetUrl = `${appOrigin(request)}/reset-password?token=${token}`;
+      const origin = resetOrigin(request);
+      if (!origin) {
+        // Misconfiguration: no trusted base URL in production. Do not build a
+        // link from request headers. Log and return the generic reply.
+        logger.error('[auth/forgot-password] no trusted base URL (set NEXT_PUBLIC_APP_URL); reset email skipped');
+        return Response.json(generic);
+      }
+      const resetUrl = `${origin}/reset-password?token=${token}`;
       const result = await sendEmail({ to: rows[0].email, ...passwordResetEmail(resetUrl) });
       if (!result.sent) {
         logger.warn({ reason: result.reason }, '[auth/forgot-password] email not sent');
