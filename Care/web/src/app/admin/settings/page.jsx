@@ -13,15 +13,13 @@ import { NAV_GROUPS, THEMES, TOPBAR_ITEMS, usePrefs } from "@/components/app/pre
 import ChangePasswordModal from "@/components/app/ChangePasswordModal";
 
 const ROLES = ["Super Admin", "Facility Admin", "Manager", "Nurse", "Caregiver", "Family Member"];
-const SESSIONS = [
-  { device: "Chrome on Windows", location: "Portland, OR", active: "Current session", current: true },
-];
-const SIGN_INS = [
-  { event: "Successful sign-in", device: "Chrome on Windows - Portland, OR", time: "Today, 9:42 AM", tone: "green" },
-  { event: "Two-factor challenge completed", device: "Safari on iPhone - Portland, OR", time: "Yesterday, 6:14 PM", tone: "blue" },
-  { event: "Unsuccessful password attempt", device: "Chrome on Windows - Portland, OR", time: "Jun 21, 8:03 AM", tone: "red" },
-];
 const ROLE_TONES = { "Super Admin": "blue", "Facility Admin": "green", Manager: "amber", Nurse: "blue", Caregiver: "gray", "Family Member": "gray" };
+
+const dateTime = (value) => {
+  if (!value) return "";
+  try { return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }
+  catch { return ""; }
+};
 const STATUS_TONES = { Active: "green", Invited: "blue", Suspended: "gray", Paid: "green", Refunded: "blue", Failed: "red" };
 const TABS = [
   { id: "facility", label: "Facility", icon: Building2 },
@@ -51,9 +49,35 @@ export default function SettingsPage() {
   const [accountSearch, setAccountSearch] = useState("");
   const [accounts, setAccounts] = useState([]);
   const [me, setMe] = useState(null);
-  const [sessions, setSessions] = useState(SESSIONS);
+  const [sessions, setSessions] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [securityLoaded, setSecurityLoaded] = useState(false);
+  const [revoking, setRevoking] = useState("");
   const [showChangePw, setShowChangePw] = useState(false);
   const [accountNotice, setAccountNotice] = useState("");
+
+  async function loadSecurity() {
+    const [s, a] = await Promise.all([
+      apiData("/api/auth/sessions").catch(() => []),
+      apiData("/api/auth/activity").catch(() => []),
+    ]);
+    setSessions(Array.isArray(s) ? s : []);
+    setActivity(Array.isArray(a) ? a : []);
+    setSecurityLoaded(true);
+  }
+
+  useEffect(() => { void loadSecurity(); }, []);
+
+  async function revokeSession(id) {
+    if (revoking) return;
+    setRevoking(id);
+    try {
+      await apiData("/api/auth/sessions/revoke", { method: "POST", body: JSON.stringify({ id }) });
+      await loadSecurity();
+    } catch { /* leave the row; a reload will reconcile */ } finally {
+      setRevoking("");
+    }
+  }
 
   // Admin-triggered reset for another user: sends that user the standard reset
   // link (same public flow), so no admin ever sees or sets someone's password.
@@ -207,8 +231,29 @@ export default function SettingsPage() {
   const notificationsPanel = <Panel title="Notification preferences"><div className="cx-notification-head"><span>Notification</span><span>Email</span><span>In-app</span></div>{notificationRows.map((row) => <div className="cx-notification-row" key={row.id}><div><strong>{row.title}</strong><span>{row.note}</span></div><Switch on={notifications[`${row.id}Email`]} onClick={() => toggleNotification(`${row.id}Email`)} label={`Email notifications for ${row.title}`} /><Switch on={notifications[`${row.id}App`]} onClick={() => toggleNotification(`${row.id}App`)} label={`In-app notifications for ${row.title}`} /></div>)}</Panel>;
 
   const security = <div className="cx-settings-stack"><Panel title="Sign-in security" pad><div className="cx-toggle-row"><div><div className="cx-toggle-t">Two-factor authentication</div><div className="cx-toggle-s">Require a verification code in addition to a password for staff sign-in.</div></div><Switch on={prefsLocal.twoFactor} onClick={() => toggleLocal("twoFactor")} label="Two-factor authentication" /></div></Panel>
-    <Panel title="Active sessions"><div className="cx-list">{sessions.map((session) => <div className="cx-session-row" key={`${session.device}-${session.active}`}><span className="cx-list-icon"><Monitor size={17} /></span><div><strong>{session.device}</strong><span>{session.location} - {session.active}</span></div>{session.current ? <Badge tone="green" dot>Current</Badge> : <button type="button" className="cx-btn cx-btn-quiet" onClick={() => setSessions((items) => items.filter((item) => item !== session))}>Sign out</button>}</div>)}</div></Panel>
-    <Panel title="Recent sign-in activity"><div className="cx-list">{SIGN_INS.map((entry) => <div className="cx-activity-row" key={`${entry.event}-${entry.time}`}><span className={`cx-activity-dot is-${entry.tone}`} /><div><strong>{entry.event}</strong><span>{entry.device}</span></div><time>{entry.time}</time></div>)}</div></Panel>
+    <Panel title="Active sessions"><div className="cx-list">
+      {sessions.length ? sessions.map((session) => (
+        <div className="cx-session-row" key={session.id}>
+          <span className="cx-list-icon"><Monitor size={17} /></span>
+          <div><strong>{session.device}</strong><span>{[session.ip || "IP unavailable", `active ${dateTime(session.lastSeenAt)}`].join(" - ")}</span></div>
+          {session.current
+            ? <Badge tone="green" dot>Current</Badge>
+            : <button type="button" className="cx-btn cx-btn-quiet" disabled={revoking === session.id} onClick={() => revokeSession(session.id)}>{revoking === session.id ? "Signing out..." : "Sign out"}</button>}
+        </div>
+      )) : <div className="cx-settings-help" style={{ padding: "6px 2px" }}>{securityLoaded ? "No other active sessions." : "Loading sessions..."}</div>}
+    </div></Panel>
+    <Panel title="Recent sign-in activity"><div className="cx-list">
+      {activity.length ? activity.map((entry, index) => {
+        const failed = entry.outcome !== "success";
+        return (
+          <div className="cx-activity-row" key={`${entry.at}-${index}`}>
+            <span className={`cx-activity-dot is-${failed ? "red" : "green"}`} />
+            <div><strong>{failed ? "Failed sign-in attempt" : "Successful sign-in"}</strong><span>{[entry.device, entry.ip].filter(Boolean).join(" - ")}</span></div>
+            <time>{dateTime(entry.at)}</time>
+          </div>
+        );
+      }) : <div className="cx-settings-help" style={{ padding: "6px 2px" }}>{securityLoaded ? "No recent sign-in activity." : "Loading activity..."}</div>}
+    </div></Panel>
   </div>;
 
   const panels = { facility, appearance, layout, account, preferences, roles, billing, notifications: notificationsPanel, security };

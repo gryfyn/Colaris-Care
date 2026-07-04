@@ -4,6 +4,7 @@ import { signAccessToken, signRefreshToken } from '@/lib/jwt.js';
 import { setPortalCookie, setRefreshCookie } from '@/lib/auth-cookies.js';
 import { verifyPassword } from '@/lib/passwords.js';
 import { checkRateLimit, getRateLimitResponse } from '@/lib/rate-limiter.js';
+import { recordLoginSession, logAuthEvent, requestContext } from '@/lib/session-tracking.js';
 import logger from '@/lib/logger.js';
 
 const REFRESH_TTL = 8 * 60 * 60;
@@ -55,10 +56,23 @@ export async function POST(request) {
       return Response.json({ error: 'email and password are required' }, { status: 422 });
     }
 
+    const { ip, userAgent } = requestContext(request);
+
     const { rows } = await query('select * from app.login_identity($1)', [email]);
     const identity = rows[0];
 
     if (!identity || !verifyPassword(password, identity.password_hash)) {
+      // Record the failed attempt so it surfaces in the account's sign-in
+      // activity (with the user id when the email maps to a real account).
+      await logAuthEvent({
+        organizationId: identity?.organization_id,
+        facilityId: identity?.facility_id,
+        userId: identity?.user_id,
+        outcome: 'failure',
+        ip,
+        userAgent,
+        email: identity ? undefined : email,
+      });
       return Response.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -88,6 +102,26 @@ export async function POST(request) {
 
     setRefreshCookie(response, refreshToken, REFRESH_TTL);
     await setPortalCookie(response, tokenPayload);
+
+    // Persist the session + a success event (best-effort; never blocks login).
+    await recordLoginSession({
+      userId: identity.user_id,
+      organizationId: identity.organization_id,
+      facilityId: identity.facility_id,
+      refreshToken,
+      ttlSeconds: REFRESH_TTL,
+      ip,
+      userAgent,
+    });
+    await logAuthEvent({
+      organizationId: identity.organization_id,
+      facilityId: identity.facility_id,
+      userId: identity.user_id,
+      outcome: 'success',
+      ip,
+      userAgent,
+    });
+
     return response;
   } catch (err) {
     logger.error({ err }, '[auth/login] Unhandled failure');

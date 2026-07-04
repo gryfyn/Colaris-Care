@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db.js';
 import { signAccessToken, signRefreshToken, verifyToken } from '@/lib/jwt.js';
 import { setPortalCookie, setRefreshCookie } from '@/lib/auth-cookies.js';
+import { rotateSession } from '@/lib/session-tracking.js';
 
 const REFRESH_TTL = 8 * 60 * 60;
 
@@ -52,5 +53,10 @@ export async function POST(request) {
 
   setRefreshCookie(response, newRefreshToken, REFRESH_TTL);
   await setPortalCookie(response, tokenPayload);
+
+  // Keep the persisted session current across refresh-token rotation so it stays
+  // listed as an active session (best-effort).
+  await rotateSession({ oldRefreshToken: refreshToken, newRefreshToken, ttlSeconds: REFRESH_TTL });
+
   return response;
 }

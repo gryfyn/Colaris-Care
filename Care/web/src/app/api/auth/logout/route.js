@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { deleteAuthCookies } from '@/lib/auth-cookies.js';
 import { decodeToken } from '@/lib/jwt.js';
 import { revokeToken } from '@/lib/token-blacklist.js';
+import { revokeSessionByToken } from '@/lib/session-tracking.js';
 import logger from '@/lib/logger.js';
 
 function bearerToken(request) {
@@ -26,6 +27,12 @@ export async function POST(request) {
   } catch (err) {
     // Revocation is best-effort; clearing cookies below still logs the user out.
     logger.warn({ err }, '[auth/logout] Failed to revoke access token');
+  }
+
+  // Revoke the persisted session for this device (best-effort).
+  const refreshToken = request.cookies.get('refresh_token')?.value;
+  if (refreshToken) {
+    await revokeSessionByToken(refreshToken);
   }
 
   // Clear the httpOnly portal cookie and refresh cookie so server-side guards reject.
