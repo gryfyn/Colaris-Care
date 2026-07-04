@@ -4,11 +4,7 @@
 // handling and "manual entry still works" degradation.
 
 import { readUpload } from '@/lib/document-extract.js';
-
-const DEFAULT_MODEL = process.env.FORM_PARSE_MODEL || 'anthropic/claude-sonnet-4.5';
-// Vision path needs a multimodal model that can read PDFs/images (Claude does
-// OCR + handwriting). Default to Sonnet; override with VISION_PARSE_MODEL.
-const VISION_MODEL = process.env.VISION_PARSE_MODEL || process.env.FORM_PARSE_MODEL || 'anthropic/claude-sonnet-4.5';
+import { resolveModel, hasModelCredentials } from '@/lib/ai-model.js';
 
 function unavailable() {
   return {
@@ -16,7 +12,7 @@ function unavailable() {
     fields: {},
     warning:
       'Automatic extraction is unavailable, so please complete the fields manually. ' +
-      (process.env.AI_GATEWAY_API_KEY ? '' : '(AI_GATEWAY_API_KEY is not configured.)'),
+      (hasModelCredentials() ? '' : '(No AI model key configured — set a free GOOGLE_GENERATIVE_AI_API_KEY or AI_GATEWAY_API_KEY.)'),
   };
 }
 
@@ -26,7 +22,7 @@ export async function extractStructured({ text, buildSchema, system, model, maxC
     const [{ generateObject }, { z }] = await Promise.all([import('ai'), import('zod')]);
     const schema = buildSchema(z);
     const { object } = await generateObject({
-      model: model || DEFAULT_MODEL,
+      model: await resolveModel(model),
       schema,
       system,
       prompt: `Document text:\n\n${clipped}`,
@@ -67,7 +63,7 @@ export async function extractStructuredFromFile({ buffer, mediaType, buildSchema
     const [{ generateObject }, { z }] = await Promise.all([import('ai'), import('zod')]);
     const schema = buildSchema(z);
     const { object } = await generateObject({
-      model: model || VISION_MODEL,
+      model: await resolveModel(model),
       schema,
       system,
       messages: [
