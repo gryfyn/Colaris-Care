@@ -15,6 +15,7 @@ import {
   Plus,
   ShieldCheck,
   Trash2,
+  UploadCloud,
   UserRound,
 } from "lucide-react";
 import { Avatar, Badge, PageHeader, Panel } from "@/components/ui/data";
@@ -25,28 +26,13 @@ import {
   TextField,
 } from "@/components/ui/fields";
 import { apiData } from "@/lib/client-api";
-
-const ROLES = [
-  "Registered nurse",
-  "Licensed practical nurse",
-  "Caregiver",
-  "Medication aide",
-  "Care manager",
-  "Administrator",
-  "Director",
-  "Other",
-];
-
-const CREDENTIAL_OPTIONS = [
-  "Certified Nursing Assistant (CNA)",
-  "CPR / First Aid",
-  "Registered Nurse license",
-  "Medication aide credential",
-  "Dementia care training",
-  "Fire & evacuation safety",
-  "Mandatory reporter training",
-  "Mental health first aid",
-];
+import { getAccessToken } from "@/lib/client-auth";
+import {
+  STAFF_ROLES as ROLES,
+  CREDENTIAL_OPTIONS,
+  mergeParsedStaff,
+  parsedStaffCredentials,
+} from "@/lib/staff-schema";
 
 const INITIAL_FORM = {
   firstName: "",
@@ -103,11 +89,49 @@ export default function AddStaffPage() {
   const [saving, setSaving] = useState(false);
   const [adminNotification, setAdminNotification] = useState(null);
   const [message, setMessage] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState("");
 
   const set = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
     if (errors[key]) setErrors((current) => ({ ...current, [key]: undefined }));
   };
+
+  // Upload a resume / application / onboarding doc (PDF/Word/photo/scan) and
+  // merge the AI-extracted fields over the form — an alternative to typing it
+  // all. Handwriting is read via OCR. Only fields the parser filled are set.
+  async function onUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    setMessage("");
+    setImportNote("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = getAccessToken();
+      const res = await fetch("/api/v1/staff/parse", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || "Could not read the document.");
+      const data = payload.data || {};
+      if (data.parsed) {
+        setForm((current) => mergeParsedStaff(current, data.fields));
+        const creds = parsedStaffCredentials(data.fields);
+        if (creds.length) setCredentials((current) => [...current, ...creds.filter((c) => !current.some((x) => x.label === c.label))]);
+        setErrors({});
+      }
+      setImportNote(data.parsed ? `Imported "${file.name}". Review every section before adding the staff member.` : (data.warning || "Attached; please complete the fields."));
+    } catch (error) {
+      setMessage(error.message || "Upload failed.");
+    } finally {
+      setImporting(false);
+    }
+  }
   const displayName = [form.preferredName || form.firstName, form.lastName].filter(Boolean).join(" ") || "New staff member";
   const permissions = useMemo(() => PERMISSIONS[form.role] || [], [form.role]);
 
@@ -222,6 +246,33 @@ export default function AddStaffPage() {
         title="Add staff member"
         lede="Create the complete work profile used across the staff portal. Required fields and submission will be connected when the staff API is ready."
       />
+
+      <div className="cx-panel" style={{ padding: 16, marginBottom: 16, maxWidth: 920, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 240 }}>
+          <UploadCloud size={22} color="#1a56db" />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Upload a resume or application to auto-fill</div>
+            <div style={{ fontSize: 12.5, color: "var(--cx-muted)" }}>
+              PDF, Word, or a photo/scan — even handwritten forms are read (via OCR) and extracted for you to review. An alternative to typing the profile by hand.
+            </div>
+          </div>
+        </div>
+        <label className="cx-btn cx-btn-ghost" style={{ cursor: importing ? "default" : "pointer" }}>
+          {importing ? <><Loader2 size={15} className="cx-spin" /> Reading...</> : <><UploadCloud size={15} /> Upload staff document</>}
+          <input
+            type="file"
+            accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
+            style={{ display: "none" }}
+            disabled={importing}
+            onChange={onUpload}
+          />
+        </label>
+      </div>
+      {importNote && (
+        <div className="cx-panel" role="status" aria-live="polite" style={{ padding: "12px 16px", marginBottom: 16, maxWidth: 920, fontSize: 13, color: "#047857", background: "#ecfdf5", border: "1px solid #6ee7b7" }}>
+          {importNote}
+        </div>
+      )}
 
       <form className="as-stack" onSubmit={submit}>
         <Panel pad>
