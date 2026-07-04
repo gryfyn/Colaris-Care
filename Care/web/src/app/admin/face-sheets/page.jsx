@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FileText, Search, Users } from "lucide-react";
+import { ArrowRight, ChevronDown, FileText, Plus, Search, Users } from "lucide-react";
 import { Avatar, Badge, EmptyState, PageHeader, StatCard } from "@/components/ui/data";
 import { apiData } from "@/lib/client-api";
 import { buildFaceSheets } from "@/lib/face-sheet-client";
@@ -15,13 +15,16 @@ export default function FaceSheetsPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [sheets, setSheets] = useState(FACE_SHEETS);
+  const [residents, setResidents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     Promise.all([apiData("/api/v1/residents"), apiData("/api/v1/documents")])
       .then(([residents, documents]) => {
-        if (mounted) setSheets(buildFaceSheets(residents, documents));
+        if (!mounted) return;
+        setResidents(Array.isArray(residents) ? residents : []);
+        setSheets(buildFaceSheets(residents, documents));
       })
       .catch(() => {
         if (mounted) setSheets(FACE_SHEETS);
@@ -56,6 +59,7 @@ export default function FaceSheetsPage() {
         eyebrow="Clinical summary"
         title="Face sheets"
         lede="Printable resident summaries sourced from live records with protected values masked."
+        action={<AddFaceSheet residents={residents} onPick={openSheet} />}
       />
 
       <div className="cx-stats">
@@ -142,6 +146,68 @@ export default function FaceSheetsPage() {
           <EmptyState icon={FileText} title="No face sheets match" note="Try a different search or status filter." />
         )}
       </div>
+    </div>
+  );
+}
+
+// "Add facesheet" button: a dropdown of current residents. Picking one opens that
+// resident's face sheet (the existing FaceSheetDocument template) in create/view
+// mode at /admin/face-sheets/[residentId].
+function AddFaceSheet({ residents, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (event) => { if (!ref.current?.contains(event.target)) setOpen(false); };
+    const onKey = (event) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+
+  const current = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return residents
+      .filter((r) => !["discharged", "archived"].includes(r.status))
+      .map((r) => ({ id: r.id, name: r.name || `${r.firstName || ""} ${r.lastName || ""}`.trim() || "Resident", room: r.room, careLevel: r.careLevel }))
+      .filter((r) => !search || r.name.toLowerCase().includes(search))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [residents, query]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button type="button" className="cx-btn cx-btn-primary" onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}>
+        <Plus size={15} /> Add facesheet <ChevronDown size={14} />
+      </button>
+      {open && (
+        <div role="listbox" aria-label="Select a resident" style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", width: 300, maxHeight: 380, overflowY: "auto", background: "var(--cx-surface, #fff)", border: "1px solid var(--cx-line)", borderRadius: 10, boxShadow: "0 12px 32px rgba(15,23,42,0.14)", zIndex: 50, padding: 8 }}>
+          <div className="cx-search" style={{ marginBottom: 6 }}>
+            <Search size={14} />
+            <input autoFocus placeholder="Search residents..." value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search residents" />
+          </div>
+          {current.length ? current.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              role="option"
+              onClick={() => { setOpen(false); onPick(r.id); }}
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "8px 10px", border: "none", background: "transparent", borderRadius: 8, cursor: "pointer", font: "inherit", color: "var(--cx-ink)" }}
+              onMouseEnter={(event) => { event.currentTarget.style.background = "var(--cx-tint, #f4f8ff)"; }}
+              onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+            >
+              <Avatar name={r.name} sm round />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontWeight: 600, fontSize: 13 }}>{r.name}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--cx-faint)" }}>{r.room ? `Room ${r.room}` : (r.careLevel || "Resident")}</span>
+              </span>
+            </button>
+          )) : (
+            <div style={{ padding: "10px 12px", fontSize: 12.5, color: "var(--cx-faint)" }}>No current residents found.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
