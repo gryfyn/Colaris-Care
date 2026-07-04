@@ -479,7 +479,7 @@ export default function AdmissionForm() {
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>Upload an admission form to auto-fill</div>
             <div style={{ fontSize: 12.5, color: "var(--cx-faint)" }}>
-              PDF or Word. We extract the fields with AI for you to review — an alternative to filling everything by hand. The file is kept as the Admission Assessment document.
+              PDF, Word, or a photo/scan — even handwritten forms are read (via OCR) and extracted for you to review. The file is kept as the Admission Assessment document.
             </div>
           </div>
         </div>
@@ -487,7 +487,7 @@ export default function AdmissionForm() {
           {importing ? <><Loader2 size={15} className="cx-spin" /> Reading...</> : <><UploadCloud size={15} /> Upload admission form</>}
           <input
             type="file"
-            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
             style={{ display: "none" }}
             disabled={importing}
             onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; onUploadAdmission(file); }}
