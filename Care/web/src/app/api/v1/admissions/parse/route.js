@@ -1,7 +1,7 @@
 import { requireUser, AuthError, authErrorResponse } from '@/lib/auth-guard.js';
 import { PERMISSIONS } from '@/lib/roles.js';
-import { readUpload, DocumentExtractError } from '@/lib/document-extract.js';
-import { extractStructured, extractStructuredFromFile } from '@/lib/ai-extract.js';
+import { DocumentExtractError } from '@/lib/document-extract.js';
+import { parseUpload } from '@/lib/ai-extract.js';
 import {
   CONDITION_OPTIONS,
   BEHAVIORAL_CONCERNS,
@@ -86,30 +86,16 @@ export async function POST(request) {
     await requireUser(request, PERMISSIONS.ADMISSION_FORMS_WRITE);
 
     const form = await request.formData().catch(() => null);
-    const upload = await readUpload(form?.get('file'));
 
-    let result;
-    if (upload.text && upload.text.length >= MIN_DIGITAL_TEXT) {
-      result = await extractStructured({ text: upload.text, buildSchema: buildAdmissionSchema, system: SYSTEM, model: MODEL, maxChars: 60000 });
-    } else if (upload.kind === 'docx') {
-      // A .docx with no readable text (e.g. only embedded images) can't be OCR'd
-      // by the model — ask the user to upload a PDF or photo instead.
-      result = {
-        parsed: false,
-        fields: {},
-        warning: 'This Word document has no readable text. For a scanned or handwritten form, upload it as a PDF or a photo (PNG/JPG) so it can be read.',
-      };
-    } else {
-      // Scanned / handwritten PDF or image → vision OCR.
-      result = await extractStructuredFromFile({
-        buffer: upload.buffer,
-        mediaType: upload.mediaType,
-        buildSchema: buildAdmissionSchema,
-        system: SYSTEM,
-        model: MODEL,
-        prompt: 'This is a resident admission packet, possibly scanned or handwritten. Read all printed and handwritten entries and extract the admission fields.',
-      });
-    }
+    const { upload, ...result } = await parseUpload({
+      file: form?.get('file'),
+      buildSchema: buildAdmissionSchema,
+      system: SYSTEM,
+      model: MODEL,
+      minText: MIN_DIGITAL_TEXT,
+      maxChars: 60000,
+      visionPrompt: 'This is a resident admission packet, possibly scanned or handwritten. Read all printed and handwritten entries and extract the admission fields.',
+    });
 
     return Response.json({ data: result });
   } catch (err) {

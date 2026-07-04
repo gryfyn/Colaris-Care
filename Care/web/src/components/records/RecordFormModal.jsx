@@ -86,9 +86,9 @@ export default function RecordFormModal({ eyebrow, title, fields, submitLabel = 
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: 14, border: "1px solid var(--cx-line)", borderRadius: 10, background: "var(--cx-tint, #f4f8ff)" }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--cx-ink)" }}>{parse.label || "Upload a document to auto-fill"}</div>
-                  <div style={{ fontSize: 12, color: "var(--cx-faint)" }}>PDF or Word — fields are extracted with AI for you to review.</div>
+                  <div style={{ fontSize: 12, color: "var(--cx-faint)" }}>PDF, Word, or a photo/scan — handwriting is read too.</div>
                 </div>
-                <input ref={fileRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onUpload} style={{ display: "none" }} />
+                <input ref={fileRef} type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" onChange={onUpload} style={{ display: "none" }} />
                 <button type="button" className="cx-btn cx-btn-ghost" disabled={importing || saving} onClick={() => fileRef.current?.click()}>
                   {importing ? <><Loader2 size={15} className="cx-spin" /> Reading...</> : <><UploadCloud size={15} /> Upload</>}
                 </button>

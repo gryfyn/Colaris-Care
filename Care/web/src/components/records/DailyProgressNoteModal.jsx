@@ -122,9 +122,9 @@ export default function DailyProgressNoteModal({ resident, residentOptions = [],
           <div style={{ ...box, background: "var(--cx-tint, #f4f8ff)", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--cx-ink)" }}>Upload a note to auto-fill</div>
-              <div style={{ fontSize: 12, color: "var(--cx-faint)" }}>PDF or Word — fields are extracted with AI for you to review.</div>
+              <div style={{ fontSize: 12, color: "var(--cx-faint)" }}>PDF, Word, or a photo/scan — even handwritten notes are read for you to review.</div>
             </div>
-            <input ref={fileRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onUpload} style={{ display: "none" }} />
+            <input ref={fileRef} type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" onChange={onUpload} style={{ display: "none" }} />
             <button type="button" className="cx-btn cx-btn-ghost" disabled={parsing || saving} onClick={() => fileRef.current?.click()}>
               {parsing ? <><Loader2 size={15} className="cx-spin" /> Reading...</> : <><Upload size={15} /> Upload PDF / Word</>}
             </button>
