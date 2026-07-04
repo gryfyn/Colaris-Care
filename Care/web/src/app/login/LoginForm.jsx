@@ -105,6 +105,8 @@ export default function LoginForm() {
           <button className={styles.submit} type="submit" disabled={busy}>
             {busy ? "Signing in" : "Continue"} <ArrowRight size={17} />
           </button>
+
+          <Link href="/reset-password" className={styles.forgotLink}>Forgot your password?</Link>
         </form>
 
         <p className={styles.signupLine}>

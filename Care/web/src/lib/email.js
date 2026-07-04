@@ -18,6 +18,21 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
   }
 }
 
+export function passwordResetEmail(link) {
+  return {
+    subject: 'Reset your password — Colaris',
+    text: `We received a request to reset your Colaris password.\n\nReset it here (link expires in 30 minutes):\n${link}\n\nIf you didn't request this, you can safely ignore this message — your password will not change.`,
+    html: `<div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1B2835">
+      <div style="font-weight:800;font-size:20px;letter-spacing:-0.02em;color:#0F172A">Colaris</div>
+      <h1 style="font-size:22px;line-height:1.2;color:#0F172A;margin:18px 0 8px">Reset your password</h1>
+      <p style="font-size:15px;line-height:1.6;color:#475569;margin:0 0 22px">We received a request to reset your password. This link expires in 30 minutes.</p>
+      <a href="${link}" style="display:inline-block;background:#0F766E;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 24px;border-radius:999px">Reset password</a>
+      <p style="font-size:12.5px;line-height:1.6;color:#94A3B8;margin:24px 0 0">If the button doesn't work, paste this link:<br>${link}</p>
+      <p style="font-size:12.5px;line-height:1.6;color:#94A3B8;margin:12px 0 0">Didn't request this? You can ignore this email — your password won't change.</p>
+    </div>`,
+  };
+}
+
 export function verificationEmail(link) {
   return {
     subject: 'Verify your email — Colaris',

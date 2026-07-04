@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, Check, LayoutGrid, Mail, Palette, UserRound } from "lucide-react";
+import { Bell, Check, KeyRound, LayoutGrid, Mail, Palette, UserRound } from "lucide-react";
 import { Avatar, Badge, PageHeader, Panel } from "@/components/ui/data";
 import { apiData } from "@/lib/client-api";
 import { STAFF_NAV_GROUPS, STAFF_TOPBAR_ITEMS, THEMES, usePrefs } from "@/components/app/prefs";
+import ChangePasswordModal from "@/components/app/ChangePasswordModal";
 
 const TABS = [
   { id: "profile", label: "Profile", icon: UserRound },
@@ -27,6 +28,7 @@ export default function StaffSettingsPage() {
     announcementsEmail: false, announcementsApp: true, shiftsEmail: true, shiftsApp: true,
   });
   const [profile, setProfile] = useState(null);
+  const [showChangePw, setShowChangePw] = useState(false);
   const tabRefs = useRef([]);
 
   useEffect(() => {
@@ -58,6 +60,9 @@ export default function StaffSettingsPage() {
         <div><dt>Email</dt><dd>{profile?.email || "On file"}</dd></div><div><dt>Phone</dt><dd>{profile?.phone || "On file"}</dd></div>
       </dl>
       <p className="cx-settings-help cx-staff-profile-note">Contact a facility manager to change your name, role, or facility assignment.</p>
+    </Panel>
+    <Panel title="Security" pad>
+      <div className="cx-toggle-row"><div><div className="cx-toggle-t">Password</div><div className="cx-toggle-s">Change the password you use to sign in.</div></div><button type="button" className="cx-btn cx-btn-ghost" onClick={() => setShowChangePw(true)}><KeyRound size={14} /> Change password</button></div>
     </Panel>
   </div>;
 
@@ -96,5 +101,6 @@ export default function StaffSettingsPage() {
     <div className="cx-set-cols"><nav className="cx-set-nav" role="tablist" aria-label="Staff settings sections" aria-orientation="vertical">{TABS.map((tab, index) => { const Icon = tab.icon; const selected = active === tab.id; return <button type="button" role="tab" id={`tab-${tab.id}`} aria-controls={`panel-${tab.id}`} aria-selected={selected} tabIndex={selected ? 0 : -1} className={selected ? "on" : undefined} key={tab.id} onClick={() => selectTab(tab.id)} onKeyDown={(event) => handleTabKey(event, index)} ref={(node) => { tabRefs.current[index] = node; }}><Icon size={16} />{tab.label}</button>; })}</nav>
       <main className="cx-settings-detail" id={`panel-${active}`} role="tabpanel" aria-labelledby={`tab-${active}`} tabIndex="0"><div className="cx-mobile-section-label">{activeLabel}</div>{panels[active]}</main>
     </div>
+    {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
   </div>;
 }

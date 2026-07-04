@@ -10,6 +10,7 @@ import { Avatar, Badge, PageHeader, Panel } from "@/components/ui/data";
 import { SelectField, TextField } from "@/components/ui/fields";
 import { apiData } from "@/lib/client-api";
 import { NAV_GROUPS, THEMES, TOPBAR_ITEMS, usePrefs } from "@/components/app/prefs";
+import ChangePasswordModal from "@/components/app/ChangePasswordModal";
 
 const ROLES = ["Super Admin", "Facility Admin", "Manager", "Nurse", "Caregiver", "Family Member"];
 const SESSIONS = [
@@ -51,6 +52,20 @@ export default function SettingsPage() {
   const [accounts, setAccounts] = useState([]);
   const [me, setMe] = useState(null);
   const [sessions, setSessions] = useState(SESSIONS);
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [accountNotice, setAccountNotice] = useState("");
+
+  // Admin-triggered reset for another user: sends that user the standard reset
+  // link (same public flow), so no admin ever sees or sets someone's password.
+  async function sendResetTo(user) {
+    setAccountNotice("");
+    try {
+      await apiData("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email: user.email }) });
+      setAccountNotice(`A password reset link has been sent to ${user.email}.`);
+    } catch {
+      setAccountNotice(`Could not send a reset link to ${user.email}.`);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -161,8 +176,9 @@ export default function SettingsPage() {
 
   const current = me?.role || "Nurse";
   const account = <div className="cx-account-section"><div className="cx-section-intro"><h2>Account management</h2><p>Manage your profile and facility access without exposing sensitive resident information.</p></div>
-    <Panel title="Your account" pad><div className="cx-account-card"><Avatar name={me?.name || "Current user"} round /><div className="cx-account-identity"><strong>{me?.name || "Current user"}</strong><span>{me?.email || "Signed-in account"}</span></div><Badge tone="blue">{current}</Badge><div className="cx-account-actions"><button type="button" className="cx-btn cx-btn-ghost"><KeyRound size={14} /> Change password</button><button type="button" className="cx-btn cx-btn-quiet"><LogOut size={14} /> Sign out</button></div></div></Panel>
-    <Panel title="User accounts" action={<button type="button" className="cx-btn cx-btn-primary"><UserPlus size={15} /> Invite user</button>}><div className="cx-account-toolbar"><div className="cx-search"><Search size={15} /><input value={accountSearch} onChange={(event) => setAccountSearch(event.target.value)} placeholder="Search users, roles, or status" aria-label="Search user accounts" /></div><span>{visibleAccounts.length} {visibleAccounts.length === 1 ? "account" : "accounts"}</span></div><div className="cx-tblscroll" tabIndex="0" aria-label="Scrollable user accounts table"><table className="cx-tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last active</th><th><span className="cx-sr-only">Actions</span></th></tr></thead><tbody>{visibleAccounts.map((user) => <tr key={user.id}><td><div className="cx-cellname"><Avatar name={user.name} sm /><b>{user.name}</b></div></td><td>{user.email}</td><td><Badge tone={ROLE_TONES[user.role]}>{user.role}</Badge></td><td><Badge tone={STATUS_TONES[user.status]} dot>{user.status}</Badge></td><td className="cx-account-last">{user.lastActive}</td><td><div className="cx-row-actions"><button type="button" className="cx-btn cx-btn-quiet" title={`Reset password for ${user.name}`}><KeyRound size={14} /> Reset password</button><button type="button" className="cx-btn cx-btn-quiet" onClick={() => toggleAccount(user.id)}>{user.status === "Active" ? <UserX size={14} /> : <UserCheck size={14} />}{user.status === "Active" ? "Deactivate" : "Activate"}</button></div></td></tr>)}{!visibleAccounts.length && <tr><td colSpan="6" className="cx-account-empty">No accounts match your search.</td></tr>}</tbody></table></div></Panel>
+    {accountNotice && <div className="cx-panel" role="status" aria-live="polite" style={{ padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#047857", background: "#ecfdf5", border: "1px solid #6ee7b7" }}>{accountNotice}</div>}
+    <Panel title="Your account" pad><div className="cx-account-card"><Avatar name={me?.name || "Current user"} round /><div className="cx-account-identity"><strong>{me?.name || "Current user"}</strong><span>{me?.email || "Signed-in account"}</span></div><Badge tone="blue">{current}</Badge><div className="cx-account-actions"><button type="button" className="cx-btn cx-btn-ghost" onClick={() => setShowChangePw(true)}><KeyRound size={14} /> Change password</button><button type="button" className="cx-btn cx-btn-quiet"><LogOut size={14} /> Sign out</button></div></div></Panel>
+    <Panel title="User accounts" action={<button type="button" className="cx-btn cx-btn-primary"><UserPlus size={15} /> Invite user</button>}><div className="cx-account-toolbar"><div className="cx-search"><Search size={15} /><input value={accountSearch} onChange={(event) => setAccountSearch(event.target.value)} placeholder="Search users, roles, or status" aria-label="Search user accounts" /></div><span>{visibleAccounts.length} {visibleAccounts.length === 1 ? "account" : "accounts"}</span></div><div className="cx-tblscroll" tabIndex="0" aria-label="Scrollable user accounts table"><table className="cx-tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last active</th><th><span className="cx-sr-only">Actions</span></th></tr></thead><tbody>{visibleAccounts.map((user) => <tr key={user.id}><td><div className="cx-cellname"><Avatar name={user.name} sm /><b>{user.name}</b></div></td><td>{user.email}</td><td><Badge tone={ROLE_TONES[user.role]}>{user.role}</Badge></td><td><Badge tone={STATUS_TONES[user.status]} dot>{user.status}</Badge></td><td className="cx-account-last">{user.lastActive}</td><td><div className="cx-row-actions"><button type="button" className="cx-btn cx-btn-quiet" title={`Reset password for ${user.name}`} onClick={() => sendResetTo(user)}><KeyRound size={14} /> Reset password</button><button type="button" className="cx-btn cx-btn-quiet" onClick={() => toggleAccount(user.id)}>{user.status === "Active" ? <UserX size={14} /> : <UserCheck size={14} />}{user.status === "Active" ? "Deactivate" : "Activate"}</button></div></td></tr>)}{!visibleAccounts.length && <tr><td colSpan="6" className="cx-account-empty">No accounts match your search.</td></tr>}</tbody></table></div></Panel>
   </div>;
 
   const preferences = <Panel title="Preferences" pad>{[
@@ -202,5 +218,6 @@ export default function SettingsPage() {
     <div className="cx-set-cols"><nav className="cx-set-nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">{TABS.map((tab, index) => { const Icon = tab.icon; const selected = active === tab.id; return <button type="button" role="tab" id={`tab-${tab.id}`} aria-controls={`panel-${tab.id}`} aria-selected={selected} tabIndex={selected ? 0 : -1} className={selected ? "on" : undefined} key={tab.id} onClick={() => selectTab(tab.id)} onKeyDown={(event) => handleTabKey(event, index)} ref={(node) => { tabRefs.current[index] = node; }}><Icon size={16} />{tab.label}</button>; })}</nav>
       <main className="cx-settings-detail" id={`panel-${active}`} role="tabpanel" aria-labelledby={`tab-${active}`} tabIndex="0"><div className="cx-mobile-section-label">{activeLabel}</div>{panels[active]}</main>
     </div>
+    {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
   </div>;
 }

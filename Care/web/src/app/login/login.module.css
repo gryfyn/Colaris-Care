@@ -116,6 +116,13 @@
 .signupLink { color: var(--teal); font-weight: 600; text-decoration: none; }
 .signupLink:hover { text-decoration: underline; }
 
+.forgotLink {
+  align-self: flex-end; margin-top: -4px;
+  font-size: 0.85rem; font-weight: 600; color: var(--teal);
+  text-decoration: none; transition: color 0.18s ease;
+}
+.forgotLink:hover { text-decoration: underline; }
+
 .back {
   align-self: flex-start;
   font-size: 0.88rem; font-weight: 600; color: var(--slate);
