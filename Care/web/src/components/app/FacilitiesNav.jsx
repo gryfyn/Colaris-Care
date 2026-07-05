@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building2, Check, Loader2, Plus } from "lucide-react";
+import Link from "next/link";
+import { Building2, Check, Loader2, Plus, Users } from "lucide-react";
 import { fetchFacilities, switchFacility } from "@/lib/facilities-client";
 import AddFacilityModal from "@/components/app/AddFacilityModal";
 
@@ -50,6 +51,12 @@ export default function FacilitiesNav({ homeHref = "/admin/dashboard" }) {
           {busy === f.id ? <Loader2 size={14} className="cx-spin" /> : f.current ? <Check size={15} /> : null}
         </button>
       ))}
+      {data?.isAdmin && (
+        <Link href="/admin/facilities" title="Manage homes & members" className="cx-nav-manage-home" style={{ ...itemStyle(false), color: "var(--cx-faint)", textDecoration: "none" }}>
+          <Users size={17} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+          <span className="cx-nav-text">Manage members</span>
+        </Link>
+      )}
       {data?.canAdd && (
         <button type="button" title="Add a home" onClick={() => setAdding(true)} style={{ ...itemStyle(false), color: "var(--cx-faint)" }}>
           <Plus size={17} strokeWidth={1.9} style={{ flexShrink: 0 }} />

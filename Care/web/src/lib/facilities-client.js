@@ -13,6 +13,24 @@ export function createFacility(name) {
   return apiData("/api/v1/facilities", { method: "POST", body: JSON.stringify({ name }) });
 }
 
+// Members of a home (admin of it). -> [{ userId, name, email, role, status, isSelf }]
+export function fetchMembers(facilityId) {
+  return apiData(`/api/v1/facilities/members?facilityId=${encodeURIComponent(facilityId)}`);
+}
+
+// Org users, for the "add member" picker. -> [{ userId, name, email, roles, homes }]
+export function fetchOrgMembers() {
+  return apiData("/api/v1/org/members");
+}
+
+export function addMember(facilityId, userId, role) {
+  return apiData("/api/v1/facilities/members", { method: "POST", body: JSON.stringify({ facilityId, userId, role }) });
+}
+
+export function removeMember(facilityId, userId) {
+  return apiData(`/api/v1/facilities/members?facilityId=${encodeURIComponent(facilityId)}&userId=${encodeURIComponent(userId)}`, { method: "DELETE" });
+}
+
 // Switch the active home. Re-mints the session server-side; on success updates
 // the client store so subsequent requests use the new facility. The caller is
 // responsible for navigating/reloading so all data refetches under the new home.

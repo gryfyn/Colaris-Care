@@ -25,6 +25,7 @@ export async function GET(request) {
         facilities,
         currentFacilityId: user.facilityId,
         max: MAX_HOMES,
+        isAdmin,
         canAdd: isAdmin && facilities.length < MAX_HOMES,
       },
     });
