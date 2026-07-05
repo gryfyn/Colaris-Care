@@ -5,11 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Menu, ChevronDown, Building2, Search, Bell, LogOut,
+  Menu, Search, Bell, LogOut,
   PanelLeftClose, PanelLeftOpen, Settings,
 } from "lucide-react";
 import { usePrefs, NAV_GROUPS, NAV_FLAT, SETTINGS_ITEM } from "./prefs";
 import Onboarding from "./Onboarding";
+import FacilitySwitcher from "./FacilitySwitcher";
+import FacilitiesNav from "./FacilitiesNav";
 import { useAuthGuard } from "./AuthGuard";
 import { logout } from "@/lib/client-auth";
 import { apiData } from "@/lib/client-api";
@@ -196,6 +198,7 @@ export default function Shell({ children }) {
                   </div>
                 );
               })}
+              <FacilitiesNav />
               <div className="cx-nav-label">System</div>
               {renderLink(SETTINGS_ITEM)}
             </nav>
@@ -233,14 +236,7 @@ export default function Shell({ children }) {
               <Link href="/admin/settings" className="cx-facility cx-icon-btn" aria-label="Settings" title="Settings">
                 <Settings size={15} strokeWidth={2} />
               </Link>
-              {prefs.topbar.facility && (
-                <button className="cx-facility" type="button">
-                  <span className="cx-dot" />
-                  <Building2 size={14} strokeWidth={1.9} />
-                  Facility
-                  <ChevronDown size={14} strokeWidth={2} />
-                </button>
-              )}
+              {prefs.topbar.facility && <FacilitySwitcher />}
               <div className="cx-avatar-menu">
                 <button ref={avatarBtnRef} type="button" className="cx-avatar-btn"
                   aria-haspopup="menu" aria-expanded={menuOpen} aria-label="Account menu"

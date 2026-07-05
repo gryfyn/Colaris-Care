@@ -9,6 +9,7 @@ import {
   Settings, UserCircle2,
 } from "lucide-react";
 import { STAFF_NAV_FLAT, STAFF_NAV_GROUPS, usePrefs } from "./prefs";
+import FacilitySwitcher from "./FacilitySwitcher";
 import { useAuthGuard } from "./AuthGuard";
 import { apiData } from "@/lib/client-api";
 import { useUnreadCount } from "@/lib/use-unread";
@@ -250,6 +251,7 @@ export default function StaffShell({ children }) {
             <button type="button" className="cx-hamb" aria-label="Open staff menu" aria-expanded={drawer} onClick={() => setDrawer(true)}><Menu size={18} /></button>
             <div><div className="cx-top-title">{current.label}</div><div className="cx-top-sub">{SECTION_SUBTITLES[current.id]}</div></div>
             <div className="cx-top-right">
+              <FacilitySwitcher homeHref="/staff/dashboard" />
               {showClock && (
                 <button type="button" className="cx-facility cx-staff-clock-btn" data-on={clockedIn ? "true" : "false"}
                   onClick={toggleClock} disabled={clockBusy} aria-pressed={clockedIn}
