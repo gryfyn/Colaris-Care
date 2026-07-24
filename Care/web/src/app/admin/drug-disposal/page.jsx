@@ -11,6 +11,17 @@ const FALLBACK = [
   { id: "DD-2042", residentName: "Rosa Iniguez", medicationName: "Metformin", quantity: "4 tablets", reason: "Order changed", status: "recorded", disposedAt: "2026-06-18T14:20:00Z", witnessName: "Dauda Okafor" },
 ];
 
+function toValues(data) {
+  const f = data?.fields || {};
+  return {
+    medicationName: f.medicationName || "",
+    quantity: f.quantity || "",
+    reason: f.reason || "",
+    status: f.status || "",
+    witnessName: f.witnessName || "",
+  };
+}
+
 function normalize(item) {
   return {
     id: item.id,
@@ -85,6 +96,7 @@ export default function AdminDrugDisposalPage() {
           submitLabel="Record"
           onClose={() => setAdding(false)}
           onSubmit={createDisposal}
+          parse={{ endpoint: "/api/v1/drug-disposal/parse", toValues, label: "Upload a disposal record to auto-fill" }}
           fields={[
             { name: "medicationName", label: "Medication", required: true, placeholder: "e.g. Acetaminophen" },
             { name: "quantity", label: "Quantity", required: true, placeholder: "e.g. 12 tablets" },

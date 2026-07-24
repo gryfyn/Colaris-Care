@@ -11,6 +11,27 @@ const FALLBACK = [
   { id: "EVAC-0612", drillType: "Night shift drill", status: "completed", occurredAt: "2026-06-12T02:15:00Z", durationMinutes: 11, summary: "Night team drill completed." },
 ];
 
+function toDatetimeLocal(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text}T00:00`;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function toValues(data) {
+  const f = data?.fields || {};
+  return {
+    drillType: f.drillType || "",
+    occurredAt: toDatetimeLocal(f.occurredAt),
+    durationMinutes: f.durationMinutes ?? "",
+    status: f.status || "",
+    summary: f.summary || "",
+  };
+}
+
 function normalize(item) {
   return {
     id: item.id,
@@ -73,6 +94,7 @@ export default function AdminEvacuationDrillsPage() {
           submitLabel="Log drill"
           onClose={() => setAdding(false)}
           onSubmit={createDrill}
+          parse={{ endpoint: "/api/v1/evacuation-drills/parse", toValues, label: "Upload a drill record to auto-fill" }}
           fields={[
             { name: "drillType", label: "Drill type", required: true, span2: true, placeholder: "e.g. Fire drill" },
             { name: "occurredAt", label: "Occurred at", type: "datetime-local", required: true },
