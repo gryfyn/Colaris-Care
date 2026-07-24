@@ -22,6 +22,7 @@ This document describes the permissions currently implemented for the `staff` an
 | Safety records | Read and write incidents, drug-disposal records, evacuation drills, and related safety data | Read and write |
 | Releases of information (ROI) | Read and write; cannot revoke | Read, write, and revoke |
 | Discharge records | Read and write, but cannot perform the resident discharge action | Read and write; can perform the resident discharge action |
+| Face sheets | Read only with PHI masking; no write permission | Read and write |
 | Staff records | Read only | Read, create/update, and deactivate |
 | Admission forms | Write only; no general read or approve permission | Read, write, approve, and reject where supported |
 | Reports and audit data | No access | Access |
@@ -73,6 +74,8 @@ This document describes the permissions currently implemented for the `staff` an
 | `discharge:read_own` | No | Allowed | Read only a linked personal discharge record |
 | `discharge:read` | Allowed | Allowed | Read discharge records |
 | `discharge:write` | Allowed | Allowed | Create or update discharge documentation |
+| `face_sheets:read` | Allowed | Allowed | Read face-sheet records |
+| `face_sheets:write` | No | Allowed | Create or update face-sheet records |
 | `admission:forms_read` | No | Allowed | Read admission forms and uploaded documents |
 | `admission:forms_write` | Allowed | Allowed | Create or update admission forms and documents |
 | `admission:forms_approve` | No | Allowed | Approve or reject admission forms |

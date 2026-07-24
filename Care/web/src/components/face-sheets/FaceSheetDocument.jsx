@@ -15,13 +15,16 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Avatar, Panel } from "@/components/ui/data";
-import { FACE_SHEET_SECTIONS, MASKED } from "@/app/admin/face-sheets/data";
+import { FACE_SHEET_SECTIONS } from "@/app/admin/face-sheets/data";
+import { RESTRICTED_VALUE } from "@/lib/roles";
+
+const FALLBACK_VALUE = "Information on file";
 
 function Detail({ label, value }) {
   return (
     <div className="cx-field">
       <div className="cx-eyebrow">{label}</div>
-      <div className="fs-value">{value || "—"}</div>
+      <div className="fs-value">{value || FALLBACK_VALUE}</div>
     </div>
   );
 }
@@ -32,8 +35,8 @@ function ContactCard({ title, contact, icon: Icon }) {
       <span className="fs-icon"><Icon size={17} /></span>
       <div>
         <div className="fs-contact-title">{title}</div>
-        <strong>{contact?.name || "Information on file"}</strong>
-        <div className="fs-muted">{contact?.relationship || "Information on file"} · {contact?.phone || MASKED}</div>
+        <strong>{contact?.name || FALLBACK_VALUE}</strong>
+        <div className="fs-muted">{contact?.relationship || FALLBACK_VALUE} - {contact?.phone || FALLBACK_VALUE}</div>
       </div>
     </div>
   );
@@ -45,19 +48,24 @@ function Fact({ icon: Icon, title, children }) {
       <Icon size={17} />
       <div>
         <strong>{title}</strong>
-        <span>{children || "—"}</span>
+        <span>{children || FALLBACK_VALUE}</span>
       </div>
     </div>
   );
 }
 
 function valueFor(sheet, field) {
-  if (field.sensitive) return MASKED;
+  if (sheet.mode === "staff" && field.sensitive) return RESTRICTED_VALUE;
   const value = sheet.faceSheet?.[field.key];
-  return value || "—";
+  return typeof value === "string" && value.trim() ? value : FALLBACK_VALUE;
 }
 
 export default function FaceSheetDocument({ sheet, mode = "admin" }) {
+  const sheetWithMode = { ...sheet, mode };
+  const dateOfBirth = mode === "staff"
+    ? RESTRICTED_VALUE
+    : valueFor(sheetWithMode, { key: "date_of_birth" });
+
   return (
     <div className="fs-sheet">
       <style>{`
@@ -106,11 +114,11 @@ export default function FaceSheetDocument({ sheet, mode = "admin" }) {
           <div className="fs-identity-main">
             <div className="fs-name">{sheet.name}</div>
             <div className="fs-subtitle">
-              <MapPin size={13} style={{ verticalAlign: "-2px" }} /> Room {sheet.room} · {sheet.wing || sheet.careLevel} · {sheet.careLevel}
+              <MapPin size={13} style={{ verticalAlign: "-2px" }} /> Room {sheet.room} - {sheet.wing || sheet.careLevel} - {sheet.careLevel}
             </div>
           </div>
           <div className="cx-grid" style={{ flex: "1 1 360px" }}>
-            <Detail label="Date of birth" value={MASKED} />
+            <Detail label="Date of birth" value={dateOfBirth} />
             <Detail label="Sex / gender" value={sheet.sex} />
             <Detail label="Room" value={sheet.room} />
             <Detail label="Care level" value={sheet.careLevel} />
@@ -143,20 +151,22 @@ export default function FaceSheetDocument({ sheet, mode = "admin" }) {
         </div>
       </Panel>
 
-      <div className="fs-confidential">
-        <ShieldCheck size={16} />
-        <span>
-          Sensitive demographics, identifiers, addresses, phones, email addresses, insurance IDs, and signatures
-          are intentionally shown as <strong>{MASKED}</strong> in this mock face sheet.
-        </span>
-      </div>
+      {mode === "staff" && (
+        <div className="fs-confidential">
+          <ShieldCheck size={16} />
+          <span>
+            Sensitive demographics, identifiers, addresses, phones, email addresses, insurance IDs, and signatures
+            are shown as <strong>{RESTRICTED_VALUE}</strong>.
+          </span>
+        </div>
+      )}
 
       {FACE_SHEET_SECTIONS.map((section) => (
         <Panel title={section.title} key={section.id}>
           <div className="fs-section-grid">
             {section.fields.map((field) => {
-              const value = valueFor(sheet, field);
-              const masked = value === MASKED;
+              const value = valueFor(sheetWithMode, field);
+              const masked = value === RESTRICTED_VALUE;
               return (
                 <div className={`fs-section-field${field.wide ? " is-wide" : ""}`} key={field.key}>
                   <span className="fs-label">{field.label}</span>
@@ -178,7 +188,7 @@ export default function FaceSheetDocument({ sheet, mode = "admin" }) {
       </Panel>
 
       <div className="fs-muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <CalendarDays size={13} /> Face sheet last updated {sheet.lastUpdated}. High-level sample data only.
+        <CalendarDays size={13} /> Face sheet last updated {sheet.lastUpdated}.
       </div>
     </div>
   );

@@ -61,6 +61,8 @@ export const PERMISSIONS = {
   DISCHARGE_READ_OWN: 'discharge:read_own',
   DISCHARGE_READ: 'discharge:read',
   DISCHARGE_WRITE: 'discharge:write',
+  FACE_SHEETS_READ: 'face_sheets:read',
+  FACE_SHEETS_WRITE: 'face_sheets:write',
   ADMISSION_FORMS_READ: 'admission:forms_read',
   ADMISSION_FORMS_WRITE: 'admission:forms_write',
   ADMISSION_FORMS_APPROVE: 'admission:forms_approve',
@@ -86,6 +88,7 @@ const STAFF_PERMISSIONS = [
   PERMISSIONS.STAFF_READ,
   PERMISSIONS.DISCHARGE_READ,
   PERMISSIONS.DISCHARGE_WRITE,
+  PERMISSIONS.FACE_SHEETS_READ,
   PERMISSIONS.ADMISSION_FORMS_WRITE,
 ];
 
