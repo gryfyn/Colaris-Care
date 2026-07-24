@@ -15,7 +15,7 @@ const visionPrompt =
 
 export async function POST(request) {
   try {
-    await requireUser(request, PERMISSIONS.RESIDENTS_UPDATE);
+    await requireUser(request, PERMISSIONS.FACE_SHEETS_WRITE);
     const form = await request.formData().catch(() => null);
 
     const { upload, ...result } = await parseUpload({

@@ -1,27 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Printer } from "lucide-react";
-import { Badge, EmptyState, PageHeader } from "@/components/ui/data";
-import FaceSheetDocument from "@/components/face-sheets/FaceSheetDocument";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { FileCheck2 } from "lucide-react";
+import { Badge, EmptyState, PageHeader, Panel } from "@/components/ui/data";
 import { apiData } from "@/lib/client-api";
 import { buildFaceSheets } from "@/lib/face-sheet-client";
 import { FACE_SHEETS } from "@/app/admin/face-sheets/data";
 
 export default function StaffFaceSheetPage() {
   const [sheets, setSheets] = useState(FACE_SHEETS);
-  const [selected, setSelected] = useState(FACE_SHEETS[0]?.id);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     Promise.all([apiData("/api/v1/residents"), apiData("/api/v1/documents")])
       .then(([residents, documents]) => {
-        const nextSheets = buildFaceSheets(residents, documents);
-        if (mounted) {
-          setSheets(nextSheets);
-          setSelected((current) => nextSheets.some((item) => item.id === current) ? current : nextSheets[0]?.id);
-        }
+        if (mounted) setSheets(buildFaceSheets(residents, documents));
       })
       .catch(() => {
         if (mounted) setSheets(FACE_SHEETS);
@@ -32,53 +27,48 @@ export default function StaffFaceSheetPage() {
     return () => { mounted = false; };
   }, []);
 
-  const sheet = useMemo(
-    () => sheets.find((item) => item.id === selected) || sheets[0],
-    [selected, sheets]
-  );
-
-  if (!sheet) {
-    return (
-      <div className="cx-wide">
-        <EmptyState title="No face sheets available" note="No assigned residents are available for this staff account." />
-      </div>
-    );
-  }
-
   return (
-    <div className="cx-wide fs-page">
+    <div className="cx-wide">
       <PageHeader
-        eyebrow="Resident face sheet"
-        title={sheet.name}
-        lede="Read-only resident face sheet for quick staff reference."
-        action={(
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Badge tone={sheet.tone} dot>{loading ? "Loading" : sheet.status}</Badge>
-            <button type="button" className="cx-btn cx-btn-primary fs-no-print" onClick={() => window.print()}>
-              <Printer size={15} /> Print
-            </button>
-          </div>
-        )}
+        eyebrow="Resident face sheets"
+        title="Face sheets"
+        lede="Read-only resident summaries for quick staff reference."
       />
 
-      <div className="cx-toolbar fs-no-print">
-        <div className="cx-chips" aria-label="Select resident face sheet">
-          {sheets.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              className="cx-chip"
-              data-on={selected === item.id ? "true" : "false"}
-              aria-pressed={selected === item.id}
-              onClick={() => setSelected(item.id)}
-            >
-              {item.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <FaceSheetDocument sheet={sheet} mode="staff" />
+      {!sheets.length && !loading ? (
+        <EmptyState title="No face sheets available" note="No assigned residents are available for this staff account." />
+      ) : (
+        <Panel title={loading ? "Loading residents" : "Residents"}>
+          <div style={{ display: "grid", gap: 0 }}>
+            {sheets.map((sheet) => (
+              <Link
+                key={sheet.id}
+                href={`/staff/face-sheet/${sheet.id}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "14px 18px",
+                  borderTop: "1px solid var(--cx-border-soft)",
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+              >
+                <span className="fs-no-print" style={{ color: "var(--cx-accent)" }}>
+                  <FileCheck2 size={18} />
+                </span>
+                <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+                  <strong style={{ display: "block", fontSize: 13.5, color: "var(--cx-ink)" }}>{sheet.name}</strong>
+                  <span style={{ display: "block", marginTop: 4, fontSize: 12.5, color: "var(--cx-muted)" }}>
+                    Room {sheet.room} - {sheet.careLevel}
+                  </span>
+                </span>
+                <Badge tone={sheet.tone} dot>{sheet.status}</Badge>
+              </Link>
+            ))}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }
