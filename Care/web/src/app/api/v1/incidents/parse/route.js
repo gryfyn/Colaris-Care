@@ -20,7 +20,6 @@ const buildSchema = (z) =>
     summary: z.string().describe('What happened and immediate actions taken').nullish(),
     occurredAt: z.string().nullish(),
     followUpDueAt: z.string().nullish(),
-    residentName: z.string().nullish(),
   });
 
 // POST /api/v1/incidents/parse  (multipart/form-data, field: file)

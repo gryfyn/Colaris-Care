@@ -32,6 +32,19 @@ function Checks({ options, selected, onToggle }) {
   );
 }
 
+function mergeParsedNoteBody(current, incoming) {
+  const parsed = normalizeNoteBody(incoming);
+  const next = { ...current };
+  for (const [key, value] of Object.entries(parsed)) {
+    if (Array.isArray(value)) {
+      if (value.length) next[key] = value;
+    } else if (value !== undefined && value !== null && String(value).trim() !== "") {
+      next[key] = value;
+    }
+  }
+  return next;
+}
+
 // Modal that files one structured daily progress note. `resident` (optional)
 // locks the note to a resident chosen from the worklist; otherwise the caller
 // passes `residentOptions` for the dropdown. On success calls onSaved().
@@ -71,13 +84,13 @@ export default function DailyProgressNoteModal({ resident, residentOptions = [],
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload.error || "Could not parse the document.");
       const data = payload.data || {};
-      setBody(normalizeNoteBody(data.noteBody));
+      setBody((current) => mergeParsedNoteBody(current, data.noteBody));
       if (data.shift) setShift(data.shift);
       if (data.noteDate) setDate(data.noteDate);
       setSource("upload");
       setNotice(
         data.parsed
-          ? `Imported from "${file.name}". Review every field before submitting.${data.residentName ? ` Detected resident: ${data.residentName}.` : ""}`
+          ? `Imported from "${file.name}". Review every field before submitting.`
           : data.warning || "Document text imported; please complete the fields."
       );
     } catch (err) {

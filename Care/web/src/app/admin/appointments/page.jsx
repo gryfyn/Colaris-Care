@@ -11,6 +11,27 @@ const FALLBACK = [
   { id: "APT-2", residentName: "Marcus Bell", title: "Care assessment", startsAt: "2026-06-21T15:00:00.000Z", location: "Wellness room", status: "scheduled" },
 ];
 
+function toDatetimeLocal(value) {
+  if (!value) return "";
+  const text = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text}T00:00`;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function toValues(data) {
+  const f = data?.fields || {};
+  return {
+    title: f.title || "",
+    status: f.status || "",
+    startsAt: toDatetimeLocal(f.startsAt),
+    endsAt: toDatetimeLocal(f.endsAt),
+    location: f.location || "",
+  };
+}
+
 function normalize(item) {
   return {
     id: item.id,
@@ -88,6 +109,7 @@ export default function AppointmentsPage() {
           submitLabel="Schedule"
           onClose={() => setAdding(false)}
           onSubmit={createAppointment}
+          parse={{ endpoint: "/api/v1/appointments/parse", toValues, label: "Upload an appointment or referral to auto-fill" }}
           fields={[
             { name: "title", label: "Title", required: true, span2: true, placeholder: "e.g. Medical visit" },
             { name: "resident", label: "Resident", type: "select", options: residentOptions },

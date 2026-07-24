@@ -2,28 +2,26 @@ import { requireUser, AuthError, authErrorResponse } from '@/lib/auth-guard.js';
 import { PERMISSIONS } from '@/lib/roles.js';
 import { DocumentExtractError } from '@/lib/document-extract.js';
 import { parseUpload } from '@/lib/ai-extract.js';
+import { DRILL_STATUS } from '@/lib/evacuation-drill-schema.js';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const SYSTEM =
-  'You extract a single medication order for an assisted-living resident from the document, which may be typed ' +
-  'or handwritten. Read handwriting carefully. If several medications are listed, extract the first/primary one. ' +
-  'Only use values present; leave fields empty if not stated.';
+  'You extract fields from an emergency evacuation / fire drill log; the document may be typed or handwritten -- read handwriting; only use values actually present, leave others null.';
+
+const visionPrompt =
+  'This is an emergency evacuation / fire drill log, possibly scanned or handwritten. Read all printed and handwritten entries and extract only the drill fields that are present.';
 
 const buildSchema = (z) =>
   z.object({
-    name: z.string().describe('Drug name').nullish(),
-    dosage: z.string().describe('e.g. 50 mg').nullish(),
-    route: z.string().describe('e.g. Oral').nullish(),
-    frequency: z.string().describe('e.g. Daily, BID').nullish(),
-    prescriber: z.string().describe('Prescribing clinician name').nullish(),
+    drillType: z.string().nullish(),
+    occurredAt: z.string().describe('ISO 8601 datetime').nullish(),
+    durationMinutes: z.number().nullish(),
+    status: z.enum(DRILL_STATUS).nullish(),
+    summary: z.string().nullish(),
   });
 
-// POST /api/v1/medications/parse  (multipart/form-data, field: file)
-// Extracts a single medication order from an uploaded PDF/Word/image (e.g. a
-// physician order or medication list) to pre-fill the prescribe-medication form.
-// Gated on SAFETY_WRITE; graceful fallback keeps manual entry.
 export async function POST(request) {
   try {
     await requireUser(request, PERMISSIONS.SAFETY_WRITE);
@@ -33,7 +31,8 @@ export async function POST(request) {
       file: form?.get('file'),
       buildSchema,
       system: SYSTEM,
-      visionPrompt: 'This is a resident medication order or medication list, possibly scanned or handwritten. Read all printed and handwritten entries and extract the medication order fields.',
+      model: process.env.FORM_PARSE_MODEL || 'anthropic/claude-sonnet-4.5',
+      visionPrompt,
     });
 
     return Response.json({ data: result });

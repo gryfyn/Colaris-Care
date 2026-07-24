@@ -37,7 +37,6 @@ const buildSchema = (z) =>
     incidents: z.string().default(''),
     shift: z.enum(SHIFT_VALUES).nullish(),
     noteDate: z.string().describe('Note date as YYYY-MM-DD if present').nullish(),
-    residentName: z.string().nullish(),
   });
 
 // POST /api/v1/daily-progress-notes/parse   (multipart/form-data, field: file)
@@ -59,14 +58,13 @@ export async function POST(request) {
     });
 
     if (result.parsed) {
-      const { shift, noteDate, residentName, ...body } = result.fields;
+      const { shift, noteDate, ...body } = result.fields;
       return Response.json({
         data: {
           parsed: true,
           noteBody: normalizeNoteBody(body),
           shift: SHIFT_VALUES.includes(shift) ? shift : null,
           noteDate: /^\d{4}-\d{2}-\d{2}$/.test(noteDate || '') ? noteDate : null,
-          residentName: residentName || null,
         },
       });
     }
@@ -79,7 +77,6 @@ export async function POST(request) {
         noteBody: normalizeNoteBody(fallbackText ? { progressNotes: fallbackText } : {}),
         shift: null,
         noteDate: null,
-        residentName: null,
       },
     });
   } catch (err) {
