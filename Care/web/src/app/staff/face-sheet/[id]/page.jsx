@@ -18,6 +18,7 @@ async function loadStaffFaceSheet(id) {
   const sheet = buildFaceSheetFromResident(resident, documents);
   return {
     ...sheet,
+    photoUrl: record?.photoUrl || sheet.photoUrl || null,
     faceSheet: {
       ...sheet.faceSheet,
       ...(record?.data || {}),

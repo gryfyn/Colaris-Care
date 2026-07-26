@@ -122,6 +122,12 @@ async function checkRateLimitRedis(redis, key, maxRequests, windowSeconds) {
   return { allowed: true, remaining: maxRequests - count, retryAfter: null };
 }
 
+async function resetRateLimitRedis(redis, key, windowSeconds) {
+  const windowId = Math.floor(Date.now() / (windowSeconds * 1000));
+  const redisKey = `ratelimit:${key}:${windowId}`;
+  await redis.del(redisKey);
+}
+
 /**
  * Middleware for rate limiting. Uses Redis when configured, otherwise the
  * in-memory limiter. Returns a Promise so callers must `await` the result; the
@@ -142,6 +148,31 @@ export async function checkRateLimit(key, maxRequests = 10, windowSeconds = 60) 
     }
   }
   return globalRateLimiter.check(key, maxRequests, windowSeconds);
+}
+
+/**
+ * Reset the current fixed-window counter for a key. Best-effort by design:
+ * rate limiter resets must never break a successful request path.
+ * @param {string} key - Rate limit key (e.g., userId or IP)
+ * @param {number} windowSeconds - Time window in seconds
+ * @returns {Promise<void>}
+ */
+export async function resetRateLimit(key, windowSeconds = 60) {
+  const redis = getRedis();
+  if (redis) {
+    try {
+      await resetRateLimitRedis(redis, key, windowSeconds);
+      return;
+    } catch (err) {
+      logger.warn({ err }, '[rate-limiter] Redis reset failed; using in-memory fallback');
+    }
+  }
+
+  try {
+    globalRateLimiter.reset(key);
+  } catch (err) {
+    logger.warn({ err }, '[rate-limiter] In-memory reset failed');
+  }
 }
 
 /**

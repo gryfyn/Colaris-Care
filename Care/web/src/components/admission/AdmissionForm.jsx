@@ -10,6 +10,7 @@ import {
   TextAreaField,
   SegmentedField,
 } from "@/components/ui/fields";
+import { Avatar } from "@/components/ui/data";
 import { apiData, displayDate } from "@/lib/client-api";
 import { getAccessToken } from "@/lib/client-auth";
 import { uploadPortrait } from "@/lib/cloudinary-upload";
@@ -143,6 +144,37 @@ function FileField({ label, value, onChange, accept = ".pdf,.png,.jpg,.jpeg,.doc
   );
 }
 
+function PhotoField({ value, preview, name, onChange }) {
+  return (
+    <Field label="Photo" optional span2>
+      {(id) => (
+        <div className="cx-photo-upload">
+          <Avatar name={name || "New resident"} round size="2xl" src={preview} />
+          <div className="cx-photo-upload-main">
+            <div className="cx-photo-file">{value?.name || "No portrait selected"}</div>
+            <div className="cx-photo-actions">
+              <label className="cx-btn cx-btn-ghost" htmlFor={id} style={{ cursor: "pointer" }}>
+                {value ? "Replace" : "Choose photo"}
+              </label>
+              {value && (
+                <button type="button" className="cx-btn cx-btn-quiet" onClick={() => onChange(null)}>
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+          <input
+            id={id}
+            type="file"
+            accept=".png,.jpg,.jpeg,.webp,image/*"
+            onChange={(event) => onChange(event.target.files?.[0] || null)}
+          />
+        </div>
+      )}
+    </Field>
+  );
+}
+
 function DynamicRows({ title, rows, addLabel, onAdd, onRemove, children }) {
   return (
     <div className="cx-dynamic cx-span2">
@@ -211,6 +243,13 @@ export default function AdmissionForm() {
 
   const fullName = [v.firstName, v.middleName, v.lastName].filter(Boolean).join(" ").trim();
   const documentCount = Object.values(v.documents).filter(Boolean).length + (v.photo ? 1 : 0);
+  const photoPreview = useMemo(() => (v.photo ? URL.createObjectURL(v.photo) : ""), [v.photo]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
 
   const complete = {
     1: Boolean(v.firstName && v.lastName && v.email && v.dob && v.gender && v.emergencyName && v.emergencyPhone && v.admissionDate && v.facility && v.roomAssignment),
@@ -517,7 +556,7 @@ export default function AdmissionForm() {
           <SelectField label="Gender" required value={v.gender} onChange={set("gender")} error={errors.gender} options={["Female", "Male", "Non-binary", "Other", "Prefer not to say"]} />
           <SelectField label="Preferred Pronouns" optional value={v.pronouns} onChange={set("pronouns")} options={["She/her", "He/him", "They/them", "Other", "Prefer not to say"]} />
           <TextField label="Resident ID" optional value={v.residentId} onChange={set("residentId")} placeholder="Optional internal ID" />
-          <FileField label="Photo" value={v.photo} onChange={set("photo")} accept=".png,.jpg,.jpeg,.webp" />
+          <PhotoField value={v.photo} preview={photoPreview} name={fullName} onChange={set("photo")} />
 
           <div className="cx-subhead">Contact Information</div>
           <TextField label="Phone Number" type="tel" value={v.phone} onChange={set("phone")} />

@@ -36,6 +36,7 @@ function normalize(item) {
   return {
     id: item.id,
     resident: item.residentName || item.resident || "Facility-wide",
+    photoUrl: item.photoUrl || null,
     title: item.title,
     startsAt: item.startsAt || item.starts_at,
     when: displayDate(item.startsAt || item.starts_at),
@@ -56,8 +57,10 @@ export default function AppointmentsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-    apiData("/api/v1/residents").then((data) => Array.isArray(data) && setResidents(data)).catch(() => {});
+    Promise.resolve().then(() => load());
+    Promise.resolve().then(() => {
+      apiData("/api/v1/residents").then((data) => Array.isArray(data) && setResidents(data)).catch(() => {});
+    });
   }, [load]);
 
   const filtered = useMemo(() => {
@@ -100,7 +103,7 @@ export default function AppointmentsPage() {
         <StatCard icon={CalendarClock} label="Total" value={rows.length} />
       </div>
       <div className="cx-toolbar"><div className="cx-search"><Search size={15} /><input aria-label="Search appointments" placeholder="Search resident, title, or location..." value={query} onChange={(event) => setQuery(event.target.value)} /></div><span className="cx-tb-spacer" /><span style={{ fontSize: 12.5, color: "var(--cx-faint)" }}>{filtered.length} appointment{filtered.length === 1 ? "" : "s"}</span></div>
-      <div className="cx-tablewrap">{filtered.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident / scope</th><th>Appointment</th><th>When</th><th>Location</th><th>Status</th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id}><td><div className="cx-cellname"><Avatar name={row.resident} sm /><strong>{row.resident}</strong></div></td><td>{row.title}</td><td>{row.when}</td><td><MapPin size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />{row.location}</td><td><Badge tone={statusTone(row.status)} dot>{row.status}</Badge></td></tr>)}</tbody></table></div> : <EmptyState icon={CalendarClock} title="No appointments match" note="Try a different search." />}</div>
+      <div className="cx-tablewrap">{filtered.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident / scope</th><th>Appointment</th><th>When</th><th>Location</th><th>Status</th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id}><td><div className="cx-cellname"><Avatar name={row.resident} round size="md" src={row.photoUrl} /><strong>{row.resident}</strong></div></td><td>{row.title}</td><td>{row.when}</td><td><MapPin size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />{row.location}</td><td><Badge tone={statusTone(row.status)} dot>{row.status}</Badge></td></tr>)}</tbody></table></div> : <EmptyState icon={CalendarClock} title="No appointments match" note="Try a different search." />}</div>
 
       {adding && (
         <RecordFormModal

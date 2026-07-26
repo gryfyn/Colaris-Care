@@ -55,7 +55,7 @@ export default function StaffDashboardPage() {
       <div className="cx-cols cx-mt">
         <Panel title="My assigned residents" action={<Link href="/staff/residents" className="cx-link">View all</Link>}>
           <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident</th><th>Room</th><th className="cx-hide-sm">Care level</th><th>Status</th></tr></thead><tbody>
-            {data.residents.slice(0, 6).map((resident) => <tr key={resident.id}><td><div className="cx-cellname"><Avatar name={resident.name} round /><b>{resident.name}</b></div></td><td className="cx-tnum">{resident.room || "Unassigned"}</td><td className="cx-hide-sm cx-cellsub">{resident.careLevel || "On file"}</td><td><Badge tone={statusTone(resident.status)} dot>{resident.status || "Active"}</Badge></td></tr>)}
+            {data.residents.slice(0, 6).map((resident) => <tr key={resident.id}><td><div className="cx-cellname"><Avatar name={resident.name} round size="md" src={resident.photoUrl} /><b>{resident.name}</b></div></td><td className="cx-tnum">{resident.room || "Unassigned"}</td><td className="cx-hide-sm cx-cellsub">{resident.careLevel || "On file"}</td><td><Badge tone={statusTone(resident.status)} dot>{resident.status || "Active"}</Badge></td></tr>)}
             {!data.residents.length && <tr><td colSpan={4} className="cx-cellsub">No assigned residents found.</td></tr>}
           </tbody></table></div>
         </Panel>

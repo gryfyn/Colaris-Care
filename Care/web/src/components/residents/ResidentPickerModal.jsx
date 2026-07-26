@@ -74,7 +74,7 @@ export default function ResidentPickerModal({ eyebrow = "Select", title = "Selec
                     disabled={busy}
                     onClick={() => onSelect(resident)}
                   >
-                    <Avatar name={name} round sm />
+                    <Avatar name={name} round sm src={resident.photoUrl} />
                     <div className="cx-feed-main">
                       <div className="cx-feed-t">{name}</div>
                       <div className="cx-feed-s">Room {resident.room || "pending"}{resident.careLevel ? ` · ${resident.careLevel}` : ""}</div>

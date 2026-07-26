@@ -1,4 +1,5 @@
 import { portalCookieMaxAge, portalCookieName, signPortalSession } from '@/lib/portal-session.js';
+import { serializeThemeCookie } from '@/lib/themes.js';
 
 export const REFRESH_COOKIE_PATH = '/api/auth';
 
@@ -50,6 +51,11 @@ export function setRefreshCookie(response, token, maxAge) {
 
 export async function setPortalCookie(response, payload) {
   appendCookie(response, await serializePortalCookie(payload));
+}
+
+export function setThemeCookie(response, theme) {
+  const cookie = serializeThemeCookie(theme);
+  if (cookie) appendCookie(response, cookie);
 }
 
 export function deleteAuthCookies(response) {

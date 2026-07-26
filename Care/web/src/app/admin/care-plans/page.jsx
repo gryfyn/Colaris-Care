@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CalendarClock, CheckCircle2, FileText, HeartPulse, Plus, Search } from "lucide-react";
-import { Avatar, Badge, EmptyState, PageHeader, StatCard } from "@/components/ui/data";
+import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, FileText, HeartPulse, Plus, RefreshCcw, Search } from "lucide-react";
+import { Avatar, Badge, EmptyState, PageBand, StatCard, TableSkeleton } from "@/components/ui/data";
 import { displayDate, statusTone } from "@/lib/client-api";
 import { useApiQuery } from "@/lib/useApiQuery";
 import ResidentPickerModal from "@/components/residents/ResidentPickerModal";
@@ -16,6 +16,7 @@ function normalizePlan(plan) {
   return {
     id: plan.id,
     resident: plan.resident || plan.residentName || "Resident",
+    photoUrl: plan.photoUrl || null,
     focus: plan.focus || plan.summary || plan.title || "Care plan",
     status: status === "active" ? "Active" : status === "draft" ? "Draft" : status,
     tone: plan.tone || statusTone(status),
@@ -29,8 +30,8 @@ export default function CarePlansPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [picking, setPicking] = useState(false);
-  const { data } = useApiQuery("care-plans", "/api/v1/care-plans", { fallback: CARE_PLANS });
-  const plans = useMemo(() => (Array.isArray(data) ? data : CARE_PLANS).map(normalizePlan), [data]);
+  const { data, error, isError, isPending, refetch } = useApiQuery("care-plans", "/api/v1/care-plans", { fallback: CARE_PLANS });
+  const plans = useMemo(() => (Array.isArray(data) ? data : []).map(normalizePlan), [data]);
 
   const rows = useMemo(() => plans.filter((plan) => {
     const search = query.trim().toLowerCase();
@@ -47,7 +48,7 @@ export default function CarePlansPage() {
 
   return (
     <div className="cx-wide">
-      <PageHeader
+      <PageBand
         eyebrow="Care"
         title="Care plans"
         lede="Review each resident's current plan, focus, ownership, and upcoming review date."
@@ -57,20 +58,22 @@ export default function CarePlansPage() {
           </button>
         )}
       />
-      <div className="cx-stats">
-        <StatCard icon={HeartPulse} label="Active plans" value={active} />
-        <StatCard icon={CalendarClock} label="Reviews due" value={due} delta="needs attention" deltaDir="down" />
-        <StatCard icon={FileText} label="Drafts" value={drafts} />
-        <StatCard icon={CheckCircle2} label="On schedule" value={`${onSchedule}%`} delta="current plans" deltaDir="up" />
-      </div>
-      <div className="cx-toolbar">
-        <div className="cx-search"><Search size={15} /><input aria-label="Search care plans" placeholder="Search resident, focus, or owner..." value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-        <div className="cx-chips" aria-label="Filter care plans by status">{FILTERS.map((item) => <button type="button" key={item} className="cx-chip" data-on={filter === item ? "true" : "false"} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item}</button>)}</div>
-        <span className="cx-tb-spacer" />
-        <span style={{ fontSize: 12.5, color: "var(--cx-faint)" }}>{rows.length} plan{rows.length === 1 ? "" : "s"}</span>
-      </div>
-      <div className="cx-tablewrap">
-        {rows.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident</th><th>Focus</th><th>Status</th><th className="cx-hide-sm">Review due</th><th className="cx-hide-sm">Owner</th><th aria-label="Open plan" /></tr></thead><tbody>{rows.map((plan) => <tr key={plan.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${plan.resident}'s care plan`} onClick={() => openPlan(plan.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openPlan(plan.id); } }}><td><div className="cx-cellname"><Avatar name={plan.resident} round /><b>{plan.resident}</b></div></td><td>{plan.focus}</td><td><Badge tone={plan.tone} dot>{plan.status}</Badge></td><td className="cx-hide-sm cx-cellsub">{plan.nextReview}</td><td className="cx-hide-sm cx-cellsub">{plan.owner}</td><td><ArrowRight size={16} color="var(--cx-faint)" /></td></tr>)}</tbody></table></div> : <EmptyState icon={HeartPulse} title="No care plans yet" note="Create a resident's first care plan with the Add care plan button." action={<button type="button" className="cx-btn cx-btn-primary" onClick={() => setPicking(true)}><Plus size={15} /> Add care plan</button>} />}
+      <div className="cx-page-rhythm">
+        <div className="cx-stats">
+          <StatCard icon={HeartPulse} label="Active plans" value={active} />
+          <StatCard icon={CalendarClock} label="Reviews due" value={due} delta="needs attention" deltaDir="down" />
+          <StatCard icon={FileText} label="Drafts" value={drafts} />
+          <StatCard icon={CheckCircle2} label="On schedule" value={`${onSchedule}%`} delta="current plans" deltaDir="up" />
+        </div>
+        <div className="cx-toolbar">
+          <div className="cx-search"><Search size={15} /><input aria-label="Search care plans" placeholder="Search resident, focus, or owner..." value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+          <div className="cx-chips" aria-label="Filter care plans by status">{FILTERS.map((item) => <button type="button" key={item} className="cx-chip" data-on={filter === item ? "true" : "false"} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item}</button>)}</div>
+          <span className="cx-tb-spacer" />
+          <span className="cx-results-count cx-tnum">{rows.length} plan{rows.length === 1 ? "" : "s"}</span>
+        </div>
+        <div className="cx-tablewrap">
+          {isPending ? <TableSkeleton rows={5} cols={6} /> : isError ? <EmptyState icon={AlertTriangle} title="Could not load care plans" note={error?.message || "Try again to refresh care plans."} action={<button type="button" className="cx-btn cx-btn-primary" onClick={() => refetch()}><RefreshCcw size={15} /> Retry</button>} /> : rows.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident</th><th>Focus</th><th>Status</th><th className="cx-hide-sm">Review due</th><th className="cx-hide-sm">Owner</th><th aria-label="Open plan" /></tr></thead><tbody>{rows.map((plan) => <tr key={plan.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${plan.resident}'s care plan`} onClick={() => openPlan(plan.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openPlan(plan.id); } }}><td><div className="cx-cellname"><Avatar name={plan.resident} round size="md" src={plan.photoUrl} /><b>{plan.resident}</b></div></td><td>{plan.focus}</td><td><Badge tone={plan.tone} dot>{plan.status}</Badge></td><td className="cx-hide-sm cx-cellsub cx-tnum">{plan.nextReview}</td><td className="cx-hide-sm cx-cellsub">{plan.owner}</td><td><ArrowRight size={16} color="var(--cx-faint)" /></td></tr>)}</tbody></table></div> : <EmptyState icon={HeartPulse} title={plans.length ? "No care plans match" : "No care plans yet"} note={plans.length ? "Try a different search or status filter." : "Create a resident's first care plan with the Add care plan button."} action={!plans.length && <button type="button" className="cx-btn cx-btn-primary" onClick={() => setPicking(true)}><Plus size={15} /> Add care plan</button>} />}
+        </div>
       </div>
 
       {picking && (
@@ -80,7 +83,7 @@ export default function CarePlansPage() {
           onClose={() => setPicking(false)}
           onSelect={(resident) => {
             const name = resident.name || `${resident.firstName || ""} ${resident.lastName || ""}`.trim();
-            const params = new URLSearchParams({ residentId: resident.id, residentName: name, room: resident.room || "" });
+            const params = new URLSearchParams({ residentId: resident.id, residentName: name, room: resident.room || "", photoUrl: resident.photoUrl || "" });
             router.push(`/admin/care-plans/new?${params.toString()}`);
           }}
         />

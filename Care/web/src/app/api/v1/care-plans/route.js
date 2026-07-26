@@ -7,6 +7,7 @@ function mapPlan(row) {
     id: row.id,
     residentId: row.resident_id,
     residentName: row.resident_name,
+    photoUrl: row.photo_url,
     title: row.title,
     status: row.status,
     summary: row.summary,
@@ -33,7 +34,7 @@ export async function GET(request) {
 
     const plans = await tx.care_plans.findMany({
       where,
-      include: { residents: { select: { first_name: true, last_name: true } } },
+      include: { residents: { select: { first_name: true, last_name: true, photo_url: true } } },
       orderBy: { updated_at: 'desc' },
       take: 200,
     });
@@ -43,6 +44,7 @@ export async function GET(request) {
         id: cp.id,
         resident_id: cp.resident_id,
         resident_name: `${cp.residents.first_name} ${cp.residents.last_name}`,
+        photo_url: cp.residents.photo_url,
         title: cp.title,
         status: cp.status,
         summary: cp.summary,

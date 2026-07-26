@@ -1,5 +1,8 @@
 jest.mock('@/lib/db.js', () => ({
   query: jest.fn(),
+  withRequestContext: jest.fn(async (_payload, _label, run) => run({
+    query: jest.fn(async () => ({ rows: [{ theme: 'spruce' }] })),
+  })),
 }));
 
 jest.mock('@/lib/jwt.js', () => ({
@@ -14,11 +17,13 @@ jest.mock('@/lib/passwords.js', () => ({
 jest.mock('@/lib/rate-limiter.js', () => ({
   checkRateLimit: jest.fn(() => ({ allowed: true })),
   getRateLimitResponse: jest.fn(),
+  resetRateLimit: jest.fn(async () => {}),
 }));
 
 jest.mock('@/lib/auth-cookies.js', () => ({
   setRefreshCookie: jest.fn(),
   setPortalCookie: jest.fn(async () => {}),
+  setThemeCookie: jest.fn(),
 }));
 
 jest.mock('@/lib/logger.js', () => ({
@@ -27,7 +32,9 @@ jest.mock('@/lib/logger.js', () => ({
 }));
 
 import { query } from '@/lib/db.js';
+import { setThemeCookie } from '@/lib/auth-cookies.js';
 import { verifyPassword } from '@/lib/passwords.js';
+import { resetRateLimit } from '@/lib/rate-limiter.js';
 import { POST } from '@/app/api/auth/login/route.js';
 
 function request(body) {
@@ -69,5 +76,7 @@ describe('/api/auth/login', () => {
     expect(response.status).toBe(200);
     expect(payload.accessToken).toBe('access-token');
     expect(payload.user.role).toBe('admin');
+    expect(setThemeCookie).toHaveBeenCalledWith(response, 'spruce');
+    expect(resetRateLimit).toHaveBeenCalledWith('auth:login:unknown');
   });
 });

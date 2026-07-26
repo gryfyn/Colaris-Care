@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Building2, CheckCircle2, Layout, Loader2, Palette } from "lucide-react";
 import { THEMES } from "@/components/app/prefs";
+import { setClientThemePreference } from "@/lib/themes";
 import styles from "./onboarding.module.css";
 
 const TIMEZONES = [
@@ -35,7 +36,13 @@ export default function OnboardingClient() {
   const set = (key) => (e) => setForm((s) => ({ ...s, [key]: e.target.value }));
 
   useEffect(() => {
-    if (!token) { setGate("blocked"); setGateMsg("This setup link is missing its token. Please use the link from your verification step."); return; }
+    if (!token) {
+      queueMicrotask(() => {
+        setGate("blocked");
+        setGateMsg("This setup link is missing its token. Please use the link from your verification step.");
+      });
+      return;
+    }
     let alive = true;
     fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`)
       .then(async (res) => {
@@ -71,6 +78,7 @@ export default function OnboardingClient() {
         // Mark onboarded: the theme was chosen here at signup, so the in-app
         // setup modal must not appear afterwards.
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, theme, onboarded: true, sidebarCollapsed: layout === "compact" }));
+        setClientThemePreference(theme);
       } catch {}
       setGate("done");
     } catch {

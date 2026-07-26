@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Search, ShieldCheck, Users } from "lucide-react";
-import { Avatar, Badge, EmptyState, PageHeader } from "@/components/ui/data";
+import { AlertTriangle, ArrowRight, RefreshCcw, Search, ShieldCheck, Users } from "lucide-react";
+import { Avatar, Badge, EmptyState, PageHeader, TableSkeleton } from "@/components/ui/data";
 import { useApiQuery } from "@/lib/useApiQuery";
 import { STAFF_RESIDENTS } from "./data";
 
@@ -13,6 +13,7 @@ function normalizeResident(resident) {
   return {
     id: resident.id,
     name: resident.name || `${resident.firstName || ""} ${resident.lastName || ""}`.trim(),
+    photoUrl: resident.photoUrl || null,
     room: resident.room || "-",
     level: resident.level || resident.careLevel || "Assisted living",
     wing: resident.wing || "Facility",
@@ -24,8 +25,8 @@ export default function StaffResidentsPage() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("All");
-  const { data } = useApiQuery("staff-residents", "/api/v1/residents", { fallback: STAFF_RESIDENTS });
-  const residents = useMemo(() => (Array.isArray(data) ? data : STAFF_RESIDENTS).map(normalizeResident), [data]);
+  const { data, error, isError, isPending, refetch } = useApiQuery("staff-residents", "/api/v1/residents", { fallback: STAFF_RESIDENTS });
+  const residents = useMemo(() => (Array.isArray(data) ? data : []).map(normalizeResident), [data]);
 
   const rows = useMemo(() => residents.filter((resident) => {
     const matchesFilter = filter === "All" || (filter === "My residents" && resident.assigned) || resident.wing === filter || resident.level === filter;
@@ -46,7 +47,7 @@ export default function StaffResidentsPage() {
         <span style={{ fontSize: 12.5, color: "var(--cx-faint)" }}>{rows.length} resident{rows.length === 1 ? "" : "s"}</span>
       </div>
       <div className="cx-tablewrap">
-        {rows.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident</th><th>Room</th><th>Care level</th><th className="cx-hide-sm">Wing</th><th>Assignment</th><th aria-label="Open resident" /></tr></thead><tbody>{rows.map((resident) => <tr key={resident.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${resident.name}'s overview`} onClick={() => openResident(resident.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openResident(resident.id); } }}><td><div className="cx-cellname"><Avatar name={resident.name} round /><b>{resident.name}</b></div></td><td className="cx-tnum">{resident.room}</td><td>{resident.level}</td><td className="cx-hide-sm cx-cellsub">{resident.wing}</td><td>{resident.assigned ? <Badge tone="green" dot>Assigned to me</Badge> : <Badge tone="gray">Facility</Badge>}</td><td><ArrowRight size={16} color="var(--cx-faint)" /></td></tr>)}</tbody></table></div> : <EmptyState icon={Users} title="No residents match" note="Try a different search or filter." />}
+        {isPending ? <TableSkeleton rows={6} cols={6} /> : isError ? <EmptyState icon={AlertTriangle} title="Could not load residents" note={error?.message || "Try again to refresh the resident directory."} action={<button type="button" className="cx-btn cx-btn-primary" onClick={() => refetch()}><RefreshCcw size={15} /> Retry</button>} /> : rows.length ? <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident</th><th>Room</th><th>Care level</th><th className="cx-hide-sm">Wing</th><th>Assignment</th><th aria-label="Open resident" /></tr></thead><tbody>{rows.map((resident) => <tr key={resident.id} data-click="true" role="link" tabIndex={0} aria-label={`Open ${resident.name}'s overview`} onClick={() => openResident(resident.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openResident(resident.id); } }}><td><div className="cx-cellname"><Avatar name={resident.name} round size="lg" src={resident.photoUrl} /><b>{resident.name}</b></div></td><td className="cx-tnum">{resident.room}</td><td>{resident.level}</td><td className="cx-hide-sm cx-cellsub">{resident.wing}</td><td>{resident.assigned ? <Badge tone="green" dot>Assigned to me</Badge> : <Badge tone="gray">Facility</Badge>}</td><td><ArrowRight size={16} color="var(--cx-faint)" /></td></tr>)}</tbody></table></div> : <EmptyState icon={Users} title={residents.length ? "No residents match" : "No assigned residents"} note={residents.length ? "Try a different search or filter." : "No residents are currently available for this staff account."} />}
       </div>
       <div className="cx-mt" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--cx-faint)", fontSize: 12 }}><ShieldCheck size={14} color="var(--cx-accent)" />Caregiver overview only - no detailed clinical records or sensitive identifiers are shown here.</div>
     </div>

@@ -16,7 +16,11 @@ describe('display primitives', () => {
 
   test('Avatar renders initials or an accessible portrait', () => {
     const { rerender } = render(<Avatar name="Ada Lovelace" round sm />);
-    expect(screen.getByText('AL')).toHaveClass('is-round', 'sm');
+    expect(screen.getByText('AL')).toHaveClass('cx-ava', 'cx-ava-sm', 'is-round');
+    rerender(<Avatar name="Ada Lovelace" size="xl" />);
+    expect(screen.getByText('AL')).toHaveClass('cx-ava-xl');
+    rerender(<Avatar name="Ada Lovelace" sm />);
+    expect(screen.getByText('AL')).toHaveClass('cx-ava-sm');
     rerender(<Avatar name="Ada Lovelace" src="/ada.jpg" />);
     expect(screen.getByRole('img', { name: 'Ada Lovelace portrait' })).toHaveAttribute('src', '/ada.jpg');
   });

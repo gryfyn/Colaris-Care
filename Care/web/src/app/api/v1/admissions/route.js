@@ -83,7 +83,7 @@ export async function GET(request) {
         select a.id, a.resident_id, a.admission_case_id, a.status, a.candidate_first_name,
                a.candidate_last_name, a.email, a.room, a.care_level, a.admitted_at,
                a.submitted_at, a.updated_at, a.answers,
-               r.first_name, r.last_name
+               r.first_name, r.last_name, r.photo_url
           from care.admissions a
           join care.residents r
             on r.organization_id = a.organization_id
@@ -98,6 +98,7 @@ export async function GET(request) {
     return rows.map((row) => ({
       ...mapAdmission(row),
       residentName: `${row.first_name} ${row.last_name}`,
+      photoUrl: row.photo_url,
     }));
   });
 }

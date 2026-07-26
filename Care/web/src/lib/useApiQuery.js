@@ -7,23 +7,26 @@ function toKey(key) {
 
 /**
  * Fetches `path` from the /api/v1 endpoints with the stored bearer token.
- * Renders the provided fixture `fallback` immediately and keeps it whenever the
- * request fails or auth is unavailable, so pages never blank out.
+ * By default, loading and error states are surfaced to the caller; fixture data
+ * is never rendered as live data. `fallback` is reserved for explicit demo mode
+ * only and is used on non-auth request failure only outside production when
+ * NEXT_PUBLIC_COLARIS_DEMO === "true". Auth failures still propagate.
  */
 export function useApiQuery(key, path, { fallback, ...options } = {}) {
+  const demoFallback =
+    process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_COLARIS_DEMO === "true"
+      ? fallback
+      : undefined;
   return useQuery({
     queryKey: toKey(key),
     queryFn: async () => {
       try {
         return await apiData(path);
-      } catch {
-        return fallback;
+      } catch (error) {
+        if (demoFallback !== undefined && error?.status !== 401 && error?.status !== 403) return demoFallback;
+        throw error;
       }
     },
-    initialData: fallback,
-    // Treat the fixture as stale so a live fetch runs on mount, exactly like the
-    // previous "render sample data, then replace with API data" behaviour.
-    initialDataUpdatedAt: 0,
     ...options,
   });
 }

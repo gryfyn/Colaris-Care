@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db.js';
+import { query, withRequestContext } from '@/lib/db.js';
 import { signAccessToken, signRefreshToken } from '@/lib/jwt.js';
-import { setPortalCookie, setRefreshCookie } from '@/lib/auth-cookies.js';
+import { setPortalCookie, setRefreshCookie, setThemeCookie } from '@/lib/auth-cookies.js';
+import { normalizeTheme } from '@/lib/themes.js';
 import { verifyPassword } from '@/lib/passwords.js';
-import { checkRateLimit, getRateLimitResponse } from '@/lib/rate-limiter.js';
+import { checkRateLimit, getRateLimitResponse, resetRateLimit } from '@/lib/rate-limiter.js';
 import { recordLoginSession, logAuthEvent, requestContext } from '@/lib/session-tracking.js';
 import logger from '@/lib/logger.js';
 
@@ -32,10 +33,24 @@ function safeNext(role, requestedNext) {
   return redirectFor(role);
 }
 
+async function facilityTheme(payload) {
+  return withRequestContext(payload, 'auth:login-theme', async (client) => {
+    const { rows } = await client.query(
+      `select settings->>'theme' as theme
+         from care.facilities
+        where organization_id = $1 and id = $2
+        limit 1`,
+      [payload.organizationId, payload.facilityId]
+    );
+    return normalizeTheme(rows[0]?.theme);
+  }).catch(() => null);
+}
+
 export async function POST(request) {
   try {
-    const maxAttempts = Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 10;
-    const limit = await checkRateLimit(`auth:login:${clientIp(request)}`, maxAttempts, 60);
+    const maxAttempts = Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 25;
+    const rateKey = `auth:login:${clientIp(request)}`;
+    const limit = await checkRateLimit(rateKey, maxAttempts, 60);
     if (!limit.allowed) {
       const limited = getRateLimitResponse(limit);
       return Response.json(limited.body, { status: limited.status, headers: limited.headers });
@@ -76,6 +91,8 @@ export async function POST(request) {
       return Response.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    await resetRateLimit(rateKey);
+
     const tokenPayload = {
       userId: identity.user_id,
       organizationId: identity.organization_id,
@@ -102,6 +119,7 @@ export async function POST(request) {
 
     setRefreshCookie(response, refreshToken, REFRESH_TTL);
     await setPortalCookie(response, tokenPayload);
+    setThemeCookie(response, await facilityTheme(tokenPayload));
 
     // Persist the session + a success event (best-effort; never blocks login).
     await recordLoginSession({

@@ -7,6 +7,7 @@ import {
   Search, Bell, Building2, UserCog, Clock3,
   ScrollText, NotebookPen, AlertTriangle, Trash2, DoorOpen, Inbox, UserCircle2,
 } from "lucide-react";
+import { DEFAULT_THEME, isThemeId, normalizeTheme, setClientThemePreference } from "@/lib/themes";
 
 /* ── Navigation registry ───────────────────────────────────────────────
    Merges Colaris's screens with an extended nav set. Every item is
@@ -122,7 +123,6 @@ export const THEMES = [
 ];
 
 const STORAGE_KEY = "colaris.prefs.v1";
-const THEME_IDS = new Set(THEMES.map((t) => t.id));
 
 export function defaultPrefs() {
   const sidebar = {};
@@ -131,14 +131,33 @@ export function defaultPrefs() {
   const staffSidebar = {};
   STAFF_NAV_FLAT.forEach((i) => { staffSidebar[i.id] = true; });
   const staffTopbar = { settings: true, clock: true };
-  return { theme: "spruce", sidebar, topbar, staffSidebar, staffTopbar, sidebarCollapsed: false, onboarded: false };
+  return { theme: DEFAULT_THEME, sidebar, topbar, staffSidebar, staffTopbar, sidebarCollapsed: false, onboarded: false };
+}
+
+function documentTheme() {
+  if (typeof document === "undefined") return null;
+  const theme = document.documentElement.getAttribute("data-cx-theme");
+  return isThemeId(theme) ? theme : null;
+}
+
+// Seed order matters. `initialTheme` is the server cookie, which is also what
+// the server rendered into `data-theme`, so preferring it keeps the client's
+// first render byte-identical to the SSR markup (no hydration mismatch, and
+// therefore no repaint). Only when there is no cookie do we fall back to the
+// attribute the pre-hydration script wrote from localStorage — in that case the
+// server had nothing better than the default, so adopting the device value at
+// hydration is the earliest correction available.
+function seededPrefs(initialTheme) {
+  const prefs = defaultPrefs();
+  prefs.theme = (isThemeId(initialTheme) ? initialTheme : null) || documentTheme() || DEFAULT_THEME;
+  return prefs;
 }
 
 const PrefsCtx = createContext(null);
 export const usePrefs = () => useContext(PrefsCtx);
 
-export function PrefsProvider({ children }) {
-  const [prefs, setPrefs] = useState(defaultPrefs);
+export function PrefsProvider({ children, initialTheme }) {
+  const [prefs, setPrefs] = useState(() => seededPrefs(initialTheme));
   const [mounted, setMounted] = useState(false);
   // Whether the facility settings have been checked on the server yet. The
   // onboarding modal waits for this so it never flashes for a user who already
@@ -151,43 +170,68 @@ export function PrefsProvider({ children }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        setPrefs((p) => ({
-          ...p, ...saved,
-          sidebar: { ...p.sidebar, ...saved.sidebar },
-          topbar: { ...p.topbar, ...saved.topbar },
-          staffSidebar: { ...p.staffSidebar, ...saved.staffSidebar },
-          staffTopbar: { ...p.staffTopbar, ...saved.staffTopbar },
-        }));
+        if (saved.theme && !isThemeId(saved.theme)) delete saved.theme;
+        // The theme is already painted from the server cookie, which the server
+        // set from the facility and which every client-side change keeps current.
+        // Letting this device's stored copy overwrite it would reintroduce the
+        // flash we just removed, so the cookie wins whenever it exists.
+        if (isThemeId(initialTheme)) delete saved.theme;
+        queueMicrotask(() => {
+          setPrefs((p) => ({
+            ...p, ...saved,
+            sidebar: { ...p.sidebar, ...saved.sidebar },
+            topbar: { ...p.topbar, ...saved.topbar },
+            staffSidebar: { ...p.staffSidebar, ...saved.staffSidebar },
+            staffTopbar: { ...p.staffTopbar, ...saved.staffTopbar },
+          }));
+        });
       }
     } catch {}
-    setMounted(true);
-  }, []);
+    queueMicrotask(() => setMounted(true));
+    // initialTheme is a constant string from the server layout for this mount's
+    // lifetime, so this still runs exactly once in practice.
+  }, [initialTheme]);
 
   useEffect(() => {
     if (mounted) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch {}
+      setClientThemePreference(prefs.theme);
     }
   }, [prefs, mounted]);
 
-  const update = (patch) => setPrefs((p) => ({ ...p, ...patch }));
+  const update = (patch) => setPrefs((p) => ({ ...p, ...patch, theme: patch.theme && isThemeId(patch.theme) ? patch.theme : p.theme }));
   const toggleSidebar = (id) => setPrefs((p) => ({ ...p, sidebar: { ...p.sidebar, [id]: !p.sidebar[id] } }));
   const toggleTopbar = (id) => setPrefs((p) => ({ ...p, topbar: { ...p.topbar, [id]: !p.topbar[id] } }));
   const toggleStaffSidebar = (id) => setPrefs((p) => ({ ...p, staffSidebar: { ...p.staffSidebar, [id]: !p.staffSidebar[id] } }));
   const toggleStaffTopbar = (id) => setPrefs((p) => ({ ...p, staffTopbar: { ...p.staffTopbar, [id]: !p.staffTopbar[id] } }));
-  const setTheme = (theme) => setPrefs((p) => ({ ...p, theme }));
+  const setTheme = (theme) => {
+    if (!isThemeId(theme)) return;
+    setClientThemePreference(theme);
+    setPrefs((p) => p.theme === theme ? p : ({ ...p, theme }));
+  };
   const setSidebarCollapsed = (sidebarCollapsed) => setPrefs((p) => ({ ...p, sidebarCollapsed }));
-  const finishOnboarding = (patch) => setPrefs((p) => ({ ...p, ...patch, onboarded: true }));
+  const finishOnboarding = (patch) => setPrefs((p) => {
+    const theme = patch.theme && isThemeId(patch.theme) ? patch.theme : p.theme;
+    setClientThemePreference(theme);
+    return { ...p, ...patch, theme, onboarded: true };
+  });
   const resetOnboarding = () => setPrefs((p) => ({ ...p, onboarded: false }));
 
   // Adopt the facility's server-side theme + onboarded marker. Called once by
   // the shells after auth. Server theme is facility-authoritative (chosen at
   // onboarding); onboarded is sticky (never flips a completed setup back off).
+  // Almost always this adopts the theme that is already on screen (the login
+  // cookie came from this same facility row), so bail out when nothing actually
+  // differs — returning `p` unchanged keeps React from re-rendering the shells
+  // and guarantees no post-paint colour change.
   const hydrateServer = useCallback((facility = {}) => {
+    const theme = normalizeTheme(facility.theme);
+    if (theme) setClientThemePreference(theme);
     setPrefs((p) => {
-      const next = { ...p };
-      if (facility.theme && THEME_IDS.has(facility.theme)) next.theme = facility.theme;
-      if (facility.onboarded) next.onboarded = true;
-      return next;
+      const nextTheme = theme || p.theme;
+      const nextOnboarded = facility.onboarded ? true : p.onboarded;
+      if (nextTheme === p.theme && nextOnboarded === p.onboarded) return p;
+      return { ...p, theme: nextTheme, onboarded: nextOnboarded };
     });
     setServerHydrated(true);
   }, []);

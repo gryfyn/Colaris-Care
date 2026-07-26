@@ -64,7 +64,7 @@ function coreResidentFields(body) {
 async function getResident(client, user, residentId) {
   const { rows } = await client.query(
     `
-      select id, first_name, last_name, room, care_level, status, admitted_at
+      select id, first_name, last_name, room, care_level, status, photo_url, admitted_at
         from care.residents
        where organization_id = $1
          and facility_id = $2
@@ -81,11 +81,15 @@ export async function GET(request, { params }) {
   return withApiContext(request, PERMISSIONS.FACE_SHEETS_READ, 'face_sheets:read', async ({ client, user }) => {
     const { rows } = await client.query(
       `
-        select id, resident_id, data
-          from care.face_sheets
-         where organization_id = $1
-           and facility_id = $2
-           and resident_id = $3
+        select fs.id, fs.resident_id, fs.data, r.photo_url
+          from care.face_sheets fs
+          join care.residents r
+            on r.organization_id = fs.organization_id
+           and r.facility_id = fs.facility_id
+           and r.id = fs.resident_id
+         where fs.organization_id = $1
+           and fs.facility_id = $2
+           and fs.resident_id = $3
          limit 1
       `,
       [user.organizationId, user.facilityId, residentId]
@@ -109,7 +113,7 @@ export async function GET(request, { params }) {
           )
         : maskFaceSheetPHI(data);
 
-      return { residentId, data: fields, exists: true };
+      return { residentId, data: fields, photoUrl: row.photo_url || null, exists: true };
     }
 
     const resident = await getResident(client, user, residentId);
@@ -119,7 +123,7 @@ export async function GET(request, { params }) {
       throw err;
     }
 
-    return { residentId, data: residentDefaults(resident), exists: false };
+    return { residentId, data: residentDefaults(resident), photoUrl: resident.photo_url || null, exists: false };
   });
 }
 

@@ -14,7 +14,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { Avatar, Panel } from "@/components/ui/data";
+import { Panel, PortraitButton } from "@/components/ui/data";
 import { FACE_SHEET_SECTIONS } from "@/app/admin/face-sheets/data";
 import { RESTRICTED_VALUE } from "@/lib/roles";
 
@@ -105,12 +105,18 @@ export default function FaceSheetDocument({ sheet, mode = "admin" }) {
           .fs-contact-grid, .fs-facts, .fs-section-grid { padding: 10px; gap: 8px; }
           .fs-contact { padding: 8px; }
           .cx-head { margin-bottom: 10px; }
+          /* The portrait is the point of the printed sheet: force the photo (and the
+             initials gradient when there is no photo) through the browser's default
+             "don't print backgrounds" behaviour. */
+          .fs-identity .cx-ava { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .fs-identity .cx-portrait-button { cursor: default; }
+          .cx-lightbox-backdrop { display: none !important; }
         }
       `}</style>
 
       <Panel title="Resident overview" pad>
         <div className="fs-identity">
-          <Avatar name={sheet.name} round src={sheet.photoUrl} />
+          <PortraitButton name={sheet.name} src={sheet.photoUrl} size="xl" />
           <div className="fs-identity-main">
             <div className="fs-name">{sheet.name}</div>
             <div className="fs-subtitle">

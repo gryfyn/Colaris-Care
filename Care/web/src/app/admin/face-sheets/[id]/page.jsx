@@ -45,6 +45,7 @@ async function loadFaceSheetRecord(id) {
 function withFaceSheetRecord(sheet, record) {
   return {
     ...sheet,
+    photoUrl: record?.photoUrl || sheet.photoUrl || null,
     faceSheet: {
       ...sheet.faceSheet,
       ...(record?.data || {}),

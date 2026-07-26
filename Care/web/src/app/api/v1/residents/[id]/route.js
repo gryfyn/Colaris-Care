@@ -139,7 +139,7 @@ export async function PATCH(request, { params }) {
                updated_by = $7
          where id = $1
         returning id, organization_id, facility_id, first_name, last_name, date_of_birth,
-                  room, care_level, status, admitted_at, discharged_at, version,
+                  room, care_level, status, photo_url, admitted_at, discharged_at, version,
                   ssn_last4_ciphertext
       `,
       [

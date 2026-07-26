@@ -7,6 +7,7 @@ function mapAppointment(row) {
     id: row.id,
     residentId: row.resident_id,
     residentName: row.resident_name,
+    photoUrl: row.photo_url,
     title: row.title,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
@@ -19,7 +20,7 @@ export async function GET(request) {
   return withApiContext(request, PERMISSIONS.SAFETY_READ, 'appointments:read', async ({ client }) => {
     const { rows } = await client.query(
       `
-        select a.id, a.resident_id, r.first_name || ' ' || r.last_name as resident_name,
+        select a.id, a.resident_id, r.first_name || ' ' || r.last_name as resident_name, r.photo_url,
                a.title, a.starts_at, a.ends_at, a.location, a.status
           from care.appointments a
           left join care.residents r

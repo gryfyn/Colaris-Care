@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check, CheckCircle2, ClipboardList, ListTodo, ShieldCheck, Target,
 } from "lucide-react";
 import { Avatar, Badge, PageHeader, Panel, StatCard } from "@/components/ui/data";
+import { apiData } from "@/lib/client-api";
 
 const ORG = "org-maple-health-partners";
 const FACILITY_ID = "facility-maple-grove-care";
@@ -47,6 +48,21 @@ const PRIORITY_TONE = { Routine: "green", "Follow-up": "amber" };
 
 export default function StaffCarePlanPage() {
   const [goals, setGoals] = useState(INITIAL_GOALS);
+  const [residentPhotos, setResidentPhotos] = useState({});
+
+  useEffect(() => {
+    let alive = true;
+    apiData("/api/v1/residents")
+      .then((residents) => {
+        if (!alive || !Array.isArray(residents)) return;
+        setResidentPhotos(Object.fromEntries(residents.map((resident) => [
+          resident.name || `${resident.firstName || ""} ${resident.lastName || ""}`.trim(),
+          resident.photoUrl || null,
+        ])));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   const summary = useMemo(() => {
     const done = goals.filter((goal) => goal.done).length;
@@ -105,7 +121,7 @@ export default function StaffCarePlanPage() {
                 {goal.done && <Check size={15} strokeWidth={3} />}
               </button>
 
-              <Avatar name={goal.resident} sm />
+              <Avatar name={goal.resident} round size="md" src={residentPhotos[goal.resident]} />
               <div className="cx-feed-main" style={{ flex: 1 }}>
                 <div className="cx-feed-t" style={{ color: goal.done ? "var(--cx-faint)" : "var(--cx-ink)" }}>
                   {goal.task}

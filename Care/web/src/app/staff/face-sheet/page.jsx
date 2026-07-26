@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileCheck2 } from "lucide-react";
-import { Badge, EmptyState, PageHeader, Panel } from "@/components/ui/data";
+import { Avatar, Badge, EmptyState, PageHeader, Panel } from "@/components/ui/data";
 import { apiData } from "@/lib/client-api";
 import { buildFaceSheets } from "@/lib/face-sheet-client";
 import { FACE_SHEETS } from "@/app/admin/face-sheets/data";
@@ -54,9 +53,7 @@ export default function StaffFaceSheetPage() {
                   textDecoration: "none",
                 }}
               >
-                <span className="fs-no-print" style={{ color: "var(--cx-accent)" }}>
-                  <FileCheck2 size={18} />
-                </span>
+                <Avatar name={sheet.name} round size="md" src={sheet.photoUrl} />
                 <span style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <strong style={{ display: "block", fontSize: 13.5, color: "var(--cx-ink)" }}>{sheet.name}</strong>
                   <span style={{ display: "block", marginTop: 4, fontSize: 12.5, color: "var(--cx-muted)" }}>

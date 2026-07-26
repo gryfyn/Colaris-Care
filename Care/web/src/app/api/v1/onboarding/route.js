@@ -1,5 +1,6 @@
 import { query } from '@/lib/db.js';
 import logger from '@/lib/logger.js';
+import { normalizeTheme } from '@/lib/themes.js';
 
 // Completes onboarding for a verified signup: provisions a new organization +
 // facility + admin user from the facility profile. Public (token-gated) because
@@ -20,6 +21,8 @@ export async function POST(request) {
 
   const capacity = b.licensedCapacity != null && b.licensedCapacity !== ''
     ? Number.parseInt(b.licensedCapacity, 10) : null;
+  const theme = b.theme ? normalizeTheme(String(b.theme)) : null;
+  if (b.theme && !theme) return Response.json({ error: 'Unknown theme.' }, { status: 422 });
 
   try {
     const { rows } = await query(
@@ -34,7 +37,7 @@ export async function POST(request) {
         b.email ? String(b.email).trim() : null,
         b.timezone ? String(b.timezone).trim() : null,
         Number.isFinite(capacity) ? capacity : null,
-        b.theme ? String(b.theme) : null,
+        theme,
         b.layout ? String(b.layout) : null,
       ]
     );

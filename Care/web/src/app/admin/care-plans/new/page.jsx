@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, HeartPulse, Loader2, Plus, Target, UploadCloud, X } from "lucide-react";
@@ -43,8 +43,10 @@ function NewCarePlanForm() {
   const router = useRouter();
   const search = useSearchParams();
   const residentId = search.get("residentId");
-  const residentName = search.get("residentName") || "Resident";
-  const room = search.get("room") || "";
+  const initialResidentName = search.get("residentName") || "Resident";
+  const initialRoom = search.get("room") || "";
+  const initialPhotoUrl = search.get("photoUrl") || "";
+  const [residentSummary, setResidentSummary] = useState({ name: initialResidentName, room: initialRoom, photoUrl: initialPhotoUrl });
 
   const [v, setV] = useState({
     title: "",
@@ -64,6 +66,22 @@ function NewCarePlanForm() {
   const [importNote, setImportNote] = useState("");
 
   const set = (key) => (value) => setV((s) => ({ ...s, [key]: value }));
+
+  useEffect(() => {
+    if (!residentId || residentSummary.photoUrl) return;
+    let alive = true;
+    apiData(`/api/v1/residents/${residentId}`)
+      .then((resident) => {
+        if (!alive) return;
+        setResidentSummary({
+          name: resident.name || `${resident.firstName || ""} ${resident.lastName || ""}`.trim() || initialResidentName,
+          room: resident.room || initialRoom,
+          photoUrl: resident.photoUrl || "",
+        });
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [initialResidentName, initialRoom, residentId, residentSummary.photoUrl]);
 
   // Upload a care-plan document (PDF/Word) and merge the AI-extracted fields
   // over the current form — an alternative to filling it out by hand.
@@ -154,14 +172,14 @@ function NewCarePlanForm() {
         <ArrowLeft size={14} /> Care plans
       </Link>
 
-      <PageHeader eyebrow="New care plan" title={`Care plan for ${residentName}`} lede="Capture the plan focus, goals, objectives, and interventions. The plan is stored and viewable in the resident's care plan record." />
+      <PageHeader eyebrow="New care plan" title={`Care plan for ${residentSummary.name}`} lede="Capture the plan focus, goals, objectives, and interventions. The plan is stored and viewable in the resident's care plan record." />
 
       <div className="cx-panel" style={{ padding: 20, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <Avatar name={residentName} round />
+          <Avatar name={residentSummary.name} round size="md" src={residentSummary.photoUrl} />
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{residentName}</div>
-            {room && <div style={{ marginTop: 5, fontSize: 12.5, color: "var(--cx-muted)" }}>Room {room}</div>}
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{residentSummary.name}</div>
+            {residentSummary.room && <div style={{ marginTop: 5, fontSize: 12.5, color: "var(--cx-muted)" }}>Room {residentSummary.room}</div>}
           </div>
         </div>
       </div>

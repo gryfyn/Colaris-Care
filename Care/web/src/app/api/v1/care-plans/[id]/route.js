@@ -13,6 +13,7 @@ function mapPlan(row) {
     id: row.id,
     residentId: row.resident_id,
     residentName: row.resident_name,
+    photoUrl: row.photo_url,
     room: row.room,
     title: row.title,
     status: row.status,
@@ -44,7 +45,7 @@ export async function GET(request, { params }) {
         select cp.id, cp.resident_id, cp.title, cp.status, cp.summary, cp.goals,
                cp.reviewed_at, cp.next_review_at, cp.signed_at, cp.approved_at,
                cp.version, cp.created_at, cp.updated_at,
-               r.first_name || ' ' || r.last_name as resident_name, r.room
+               r.first_name || ' ' || r.last_name as resident_name, r.room, r.photo_url
           from care.care_plans cp
           join care.residents r
             on r.organization_id = cp.organization_id

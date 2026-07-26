@@ -7,7 +7,7 @@ import { apiData } from "@/lib/client-api";
 
 export default function Onboarding() {
   const { prefs, mounted, serverHydrated, setTheme: applyTheme, finishOnboarding } = usePrefs();
-  const [theme, setTheme] = useState("spruce");
+  const [theme, setTheme] = useState(() => prefs.theme);
   const [saving, setSaving] = useState(false);
   const [sidebar, setSidebar] = useState(() => {
     const s = {};

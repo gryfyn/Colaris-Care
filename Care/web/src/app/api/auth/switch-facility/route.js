@@ -1,12 +1,26 @@
 import { NextResponse } from 'next/server';
 import { requireUser, AuthError, authErrorResponse } from '@/lib/auth-guard.js';
-import { query } from '@/lib/db.js';
+import { query, withRequestContext } from '@/lib/db.js';
 import { signAccessToken, signRefreshToken } from '@/lib/jwt.js';
-import { setPortalCookie, setRefreshCookie } from '@/lib/auth-cookies.js';
+import { setPortalCookie, setRefreshCookie, setThemeCookie } from '@/lib/auth-cookies.js';
+import { normalizeTheme } from '@/lib/themes.js';
 import { rotateSession, recordLoginSession, requestContext } from '@/lib/session-tracking.js';
 import logger from '@/lib/logger.js';
 
 const REFRESH_TTL = 8 * 60 * 60;
+
+async function facilityTheme(payload) {
+  return withRequestContext(payload, 'auth:switch-facility-theme', async (client) => {
+    const { rows } = await client.query(
+      `select settings->>'theme' as theme
+         from care.facilities
+        where organization_id = $1 and id = $2
+        limit 1`,
+      [payload.organizationId, payload.facilityId]
+    );
+    return normalizeTheme(rows[0]?.theme);
+  }).catch(() => null);
+}
 
 // POST /api/auth/switch-facility  { facilityId }
 // Switches the active home. Validates the user has an active membership for the
@@ -59,6 +73,7 @@ export async function POST(request) {
 
     setRefreshCookie(response, refreshToken, REFRESH_TTL);
     await setPortalCookie(response, tokenPayload);
+    setThemeCookie(response, await facilityTheme(tokenPayload));
 
     // Keep session tracking coherent: rotate the current session onto the new
     // refresh token (best-effort).

@@ -1,5 +1,6 @@
 import { PERMISSIONS } from '@/lib/roles.js';
 import { readJson, withApiContext } from '@/lib/api-helpers.js';
+import { normalizeTheme } from '@/lib/themes.js';
 
 // Keys stored inside care.facilities.settings (JSONB). Everything the signup
 // onboarding captured (theme, layout, address, ...) lives here, plus later
@@ -12,10 +13,11 @@ const SETTING_KEYS = [
 function shape(f) {
   if (!f) return { id: null, name: null };
   const settings = f.settings && typeof f.settings === 'object' ? f.settings : {};
+  const theme = normalizeTheme(settings.theme);
   // A facility provisioned by signup always has a theme, so treat that (or an
   // explicit marker) as "already onboarded" — the setup modal must not reappear.
-  const onboarded = Boolean(settings.onboarded ?? settings.theme);
-  return { id: f.id, name: f.name, code: f.code, timezone: f.timezone, ...settings, onboarded };
+  const onboarded = Boolean(settings.onboarded ?? theme);
+  return { id: f.id, name: f.name, code: f.code, timezone: f.timezone, ...settings, theme, onboarded };
 }
 
 // Returns the signed-in user's facility profile (name + onboarding settings), so
@@ -40,6 +42,11 @@ export async function GET(request) {
 export async function PATCH(request) {
   return withApiContext(request, PERMISSIONS.ACCOUNTS_MANAGE, 'facility:update', async ({ client, user }) => {
     const body = await readJson(request);
+    if (body.theme !== undefined && !normalizeTheme(body.theme)) {
+      const err = new Error('Unknown theme');
+      err.status = 422;
+      throw err;
+    }
 
     const { rows: current } = await client.query(
       `select settings from care.facilities where organization_id = $1 and id = $2 limit 1`,
