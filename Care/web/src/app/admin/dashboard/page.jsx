@@ -1,19 +1,114 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarCheck, ClipboardList, FileText, HeartPulse, ShieldCheck, UserPlus, Users } from "lucide-react";
-import { Avatar, Badge, PageBand, Panel, StatCard } from "@/components/ui/data";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarCheck,
+  ClipboardList,
+  FileText,
+  HeartPulse,
+  MoreVertical,
+  Quote,
+  ShieldCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { Avatar, Badge, PageBand, Panel } from "@/components/ui/data";
 import { apiData, displayDate, statusTone } from "@/lib/client-api";
+import { useAuthStore } from "@/lib/store/auth-store";
+
+/* Admission statuses that mean the case is finished, so it is not "pending". */
+const TERMINAL_ADMISSION_STATUSES = new Set(["accepted", "declined", "closed"]);
 
 const QUICK = [
-  { href: "/admin/admission", icon: UserPlus, t: "New admission", s: "Capture intake basics" },
-  { href: "/admin/daily-records", icon: ClipboardList, t: "Daily records", s: "Today's proof of care" },
-  { href: "/admin/residents", icon: Users, t: "Residents", s: "Browse the directory" },
+  { href: "/admin/admission", icon: UserPlus, t: "New admission", s: "Capture intake", hue: "violet" },
+  { href: "/admin/daily-records", icon: ClipboardList, t: "Daily records", s: "Log today's care", hue: "blue" },
+  { href: "/admin/residents", icon: Users, t: "Residents", s: "Browse directory", hue: "green" },
+  { href: "/admin/calendar", icon: CalendarCheck, t: "Schedule", s: "View calendar", hue: "orange" },
 ];
 
+/* The greeting depends on the browser clock, but this component is server-rendered
+   too. Reading the clock during render would mismatch for anyone in a timezone that
+   sits in a different part of the day than the server, so the server snapshot is a
+   neutral word and the real one is swapped in after hydration. */
+const DEFAULT_DAY_PART = "day";
+const NEVER_CHANGES = () => () => {};
+
+function dayPart() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
+}
+
+function newestFirst(items, field) {
+  return [...items].sort((a, b) => {
+    const at = Date.parse(a?.[field] || "");
+    const bt = Date.parse(b?.[field] || "");
+    return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at);
+  });
+}
+
+/* Admissions have no human-readable case number, so derive a short stable ref
+   from the uuid rather than inventing a sequential one. */
+function admissionRef(admission) {
+  const raw = String(admission.admissionCaseId || admission.id || "").replace(/-/g, "");
+  return raw ? `#ADM-${raw.slice(0, 8).toUpperCase()}` : "";
+}
+
+function StatTile({ icon: Icon, label, value, sub, hue }) {
+  return (
+    <div className="cx-dash-stat">
+      <div className="cx-dash-stat-top">
+        <span className="cx-dash-stat-ico" data-hue={hue}><Icon size={23} strokeWidth={2} /></span>
+        <span className="cx-dash-stat-lbl">{label}</span>
+      </div>
+      <div className="cx-dash-stat-val">{value}</div>
+      <div className="cx-dash-stat-sub">{sub}</div>
+    </div>
+  );
+}
+
+function RowMenu({ admission, open, onToggle, onClose }) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (!e.target.closest(".cx-dash-menu-wrap")) onClose(); };
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  return (
+    <div className="cx-dash-menu-wrap">
+      <button type="button" className="cx-dash-kebab" onClick={onToggle}
+        aria-label="Admission actions" aria-haspopup="menu" aria-expanded={open}>
+        <MoreVertical size={17} />
+      </button>
+      {open && (
+        <div className="cx-dash-menu" role="menu">
+          {admission.residentId && (
+            <Link role="menuitem" href={`/admin/residents/${admission.residentId}`} onClick={onClose}>View resident</Link>
+          )}
+          <Link role="menuitem" href="/admin/admission" onClick={onClose}>Open intake</Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
-  const [data, setData] = useState({ residents: [], staff: [], admissions: [], incidents: [], notes: [] });
+  const user = useAuthStore((state) => state.user);
+  const part = useSyncExternalStore(NEVER_CHANGES, dayPart, () => DEFAULT_DAY_PART);
+  const [openMenu, setOpenMenu] = useState("");
+  const [data, setData] = useState({
+    residents: [], staff: [], admissions: [], incidents: [], notes: [], facility: null, compliance: null,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -23,66 +118,178 @@ export default function DashboardPage() {
       apiData("/api/v1/admissions").catch(() => []),
       apiData("/api/v1/incidents").catch(() => []),
       apiData("/api/v1/progress-notes").catch(() => []),
-    ]).then(([residents, staff, admissions, incidents, notes]) => {
-      if (alive) setData({ residents, staff, admissions, incidents, notes });
+      apiData("/api/v1/facility").catch(() => null),
+      apiData("/api/v1/compliance").catch(() => null),
+    ]).then(([residents, staff, admissions, incidents, notes, facility, compliance]) => {
+      if (alive) setData({ residents, staff, admissions, incidents, notes, facility, compliance });
     });
     return () => { alive = false; };
   }, []);
 
-  const activeResidents = data.residents.filter((resident) => resident.status !== "discharged").length;
-  const openIncidents = data.incidents.filter((incident) => !["closed", "resolved"].includes(String(incident.status || "").toLowerCase())).length;
-  const pendingAdmissions = data.admissions.filter((admission) => !["accepted", "declined", "closed"].includes(String(admission.status || "").toLowerCase())).length;
-  const recentAdmissions = data.admissions.slice(0, 5);
-  const feed = useMemo(() => [
-    ...data.notes.slice(0, 3).map((note) => ({ icon: FileText, tone: "blue", t: note.title || "Progress note added", s: note.residentName || "Resident record", time: displayDate(note.createdAt || note.updatedAt, "Recent") })),
-    ...data.incidents.slice(0, 3).map((incident) => ({ icon: AlertTriangle, tone: statusTone(incident.status), t: incident.title || "Incident report", s: incident.residentName || incident.severity || "Facility incident", time: displayDate(incident.occurredAt || incident.createdAt, "Recent") })),
-  ].slice(0, 5), [data.incidents, data.notes]);
+  const firstName = String(user?.displayName || "").trim().split(/\s+/)[0] || "";
+  const facilityName = data.facility?.name || "";
+
+  const activeResidents = data.residents.filter((r) => r.status !== "discharged").length;
+  const activeStaff = data.staff.filter((s) => s.status === "active").length;
+  const pendingAdmissions = data.admissions.filter(
+    (a) => !TERMINAL_ADMISSION_STATUSES.has(String(a.status || "").toLowerCase())).length;
+  const openIncidents = data.incidents.filter(
+    (i) => !["closed", "resolved"].includes(String(i.status || "").toLowerCase())).length;
+
+  const recentAdmissions = useMemo(
+    () => newestFirst(data.admissions, "updatedAt").slice(0, 5),
+    [data.admissions],
+  );
+
+  /* The APIs return no `title` on notes or incidents, and notes date from
+     `occurredAt` (not `createdAt`) — read the fields that actually exist. */
+  const feed = useMemo(() => {
+    const notes = data.notes.map((n) => ({
+      key: `note-${n.id}`, icon: FileText, hue: "blue",
+      t: "Progress note added",
+      s: [n.residentName || "Resident record", n.noteType].filter(Boolean).join(" • "),
+      occurredAt: n.occurredAt,
+    }));
+    const incidents = data.incidents.map((i) => ({
+      key: `inc-${i.id}`, icon: AlertTriangle, hue: "red",
+      t: "Incident reported",
+      s: [i.residentName || "Facility incident", i.incidentType || i.severity].filter(Boolean).join(" • "),
+      occurredAt: i.occurredAt,
+    }));
+    return newestFirst([...notes, ...incidents], "occurredAt").slice(0, 5);
+  }, [data.incidents, data.notes]);
+
+  const metrics = [
+    { c: "Open follow-ups", v: data.compliance?.incidentFollowUpOpen ?? "—" },
+    { c: "Staff certifications", v: data.compliance?.staffCertificationRecords ?? "—" },
+    { c: "Audit events (7d)", v: data.compliance?.auditEventsLast7Days ?? "—" },
+    { c: "Last evacuation drill", v: data.compliance?.lastEvacuationDrillAt ? displayDate(data.compliance.lastEvacuationDrillAt, "—") : "—" },
+  ];
 
   return (
-    <div className="cx-wide">
-      <PageBand eyebrow="Overview" title="Facility dashboard" lede="Live admissions, census, staffing, and care activity for the current facility." />
+    <div className="cx-wide cx-dash">
+      <PageBand
+        title={firstName ? `Good ${part}, ${firstName} 👋` : `Good ${part} 👋`}
+        lede={facilityName
+          ? <>Here&apos;s what&apos;s happening at <strong>{facilityName}</strong> today.</>
+          : "Here's what's happening today."}
+      />
 
       <div className="cx-page-rhythm">
         <div className="cx-stats">
-          <StatCard icon={Users} label="Active residents" value={activeResidents} delta={`${data.residents.length} total`} deltaDir="up" />
-          <StatCard icon={HeartPulse} label="Staff records" value={data.staff.length} delta="directory" deltaDir="up" />
-          <StatCard icon={UserPlus} label="Pending admissions" value={pendingAdmissions} delta="needs review" deltaDir={pendingAdmissions ? "down" : "up"} />
-          <StatCard icon={AlertTriangle} label="Open incidents" value={openIncidents} delta="follow-up" deltaDir={openIncidents ? "down" : "up"} />
+          <StatTile icon={Users} label="Active residents" value={activeResidents} sub={`${data.residents.length} total`} hue="violet" />
+          <StatTile icon={HeartPulse} label="Active staff" value={activeStaff} sub={`${data.staff.length} total staff`} hue="green" />
+          <StatTile icon={UserPlus} label="Pending admissions" value={pendingAdmissions} sub="Needs review" hue="orange" />
+          <StatTile icon={AlertTriangle} label="Open incidents" value={openIncidents} sub="Requires attention" hue="red" />
         </div>
 
-        <div className="cx-actions-row">
-          {QUICK.map((q) => {
-            const Icon = q.icon;
-            return <Link key={q.href} href={q.href} className="cx-action"><span className="cx-action-ico"><Icon size={18} /></span><span><span className="cx-action-t">{q.t}</span><span className="cx-action-s">{q.s}</span></span><ArrowRight size={17} color="var(--cx-faint)" style={{ marginLeft: "auto" }} /></Link>;
-          })}
-        </div>
+        <section className="cx-dash-quick" aria-label="Quick actions">
+          <div className="cx-dash-quick-lbl">
+            <strong>Quick actions</strong>
+            <span>Frequently used workflows</span>
+          </div>
+          <div className="cx-dash-quick-items">
+            {QUICK.map((q) => {
+              const Icon = q.icon;
+              return (
+                <Link key={q.href} href={q.href} className="cx-dash-quick-item">
+                  <span className="cx-dash-quick-ico" data-hue={q.hue}><Icon size={19} /></span>
+                  <span>
+                    <span className="cx-dash-quick-t">{q.t}</span>
+                    <span className="cx-dash-quick-s">{q.s}</span>
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+          <Link href="/admin/reports" className="cx-dash-quick-all">View all actions <ArrowRight size={16} /></Link>
+        </section>
 
         <div className="cx-cols">
-          <Panel title="Recent admissions" action={<Link href="/admin/admission" className="cx-link">Open intake</Link>}>
-            <div className="cx-tblscroll"><table className="cx-tbl"><thead><tr><th>Resident</th><th>Care level</th><th>Status</th><th className="cx-hide-sm">Updated</th></tr></thead><tbody>
-              {recentAdmissions.map((item) => (
-                <tr key={item.id}><td><div className="cx-cellname"><Avatar name={item.residentName || item.name || "Applicant"} round size="md" src={item.photoUrl} /><b>{item.residentName || item.name || "Applicant"}</b></div></td><td>{item.careLevel || "Not set"}</td><td><Badge tone={statusTone(item.status)} dot>{item.status || "Open"}</Badge></td><td className="cx-hide-sm cx-cellsub cx-tnum">{displayDate(item.updatedAt || item.createdAt, "Recent")}</td></tr>
-              ))}
-              {!recentAdmissions.length && <tr><td colSpan={4} className="cx-cellsub">No admission cases found.</td></tr>}
-            </tbody></table></div>
+          <Panel title="Recent admissions" action={<Link href="/admin/admission" className="cx-link">View all admissions</Link>}>
+            <div className="cx-tblscroll">
+              <table className="cx-tbl">
+                <thead>
+                  <tr>
+                    <th>Resident</th><th>Care level</th><th>Status</th>
+                    <th className="cx-hide-sm cx-dash-right">Updated</th><th aria-label="Actions" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentAdmissions.map((item) => {
+                    const name = item.residentName || item.name || "Applicant";
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <div className="cx-dash-name">
+                            <Avatar name={name} round size="md" src={item.photoUrl} />
+                            <span>
+                              <b>{name}</b>
+                              <span className="cx-dash-ref">{admissionRef(item)}</span>
+                            </span>
+                          </div>
+                        </td>
+                        <td>{item.careLevel || "Not set"}</td>
+                        <td><Badge tone={statusTone(item.status)} dot>{item.status || "Open"}</Badge></td>
+                        <td className="cx-hide-sm cx-cellsub cx-tnum cx-dash-right">
+                          {displayDate(item.updatedAt || item.submittedAt, "Recent")}
+                        </td>
+                        <td>
+                          <RowMenu
+                            admission={item}
+                            open={openMenu === item.id}
+                            onToggle={() => setOpenMenu(openMenu === item.id ? "" : item.id)}
+                            onClose={() => setOpenMenu("")}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!recentAdmissions.length && <tr><td colSpan={5} className="cx-cellsub">No admission cases found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </Panel>
 
-          <Panel title="Recent care activity">
+          <Panel title="Recent care activity" action={<Link href="/admin/progress-notes" className="cx-link">View all activity</Link>}>
             <div className="cx-feed">
-              {feed.map((f, i) => {
+              {feed.map((f) => {
                 const Icon = f.icon;
-                const map = { green: ["var(--cx-accent-soft)", "var(--cx-accent)"], blue: ["var(--cx-accent-soft)", "var(--cx-accent)"], amber: ["var(--cx-amber-soft)", "var(--cx-amber)"], red: ["var(--cx-danger-soft)", "var(--cx-danger)"], gray: ["var(--cx-paper-2)", "var(--cx-muted)"] };
-                const [bg, fg] = map[f.tone] || map.blue;
-                return <div className="cx-feed-item" key={`${f.t}-${i}`}><span className="cx-feed-ico" style={{ background: bg, color: fg }}><Icon size={15} /></span><div className="cx-feed-main"><div className="cx-feed-t">{f.t}</div><div className="cx-feed-s">{f.s}</div></div><span className="cx-feed-time cx-tnum">{f.time}</span></div>;
+                return (
+                  <div className="cx-feed-item" key={f.key}>
+                    <span className="cx-feed-ico" data-hue={f.hue}><Icon size={15} /></span>
+                    <div className="cx-feed-main">
+                      <div className="cx-feed-t">{f.t}</div>
+                      <div className="cx-feed-s">{f.s}</div>
+                    </div>
+                    <span className="cx-feed-time cx-tnum">{displayDate(f.occurredAt, "Recent")}</span>
+                  </div>
+                );
               })}
-              {!feed.length && <div className="cx-cellsub">No recent care activity found.</div>}
+              {!feed.length && <div className="cx-cellsub" style={{ padding: 18 }}>No recent care activity found.</div>}
             </div>
           </Panel>
         </div>
 
-        <div className="cx-page-summary">
-          <ShieldCheck size={14} color="var(--cx-accent)" /> Data is scoped by authenticated facility context.
-        </div>
+        <section className="cx-dash-summary" aria-label="Facility summary">
+          <div className="cx-dash-summary-head">
+            <span className="cx-dash-summary-badge" data-hue="violet"><ShieldCheck size={22} /></span>
+            <strong>Facility<br />summary</strong>
+          </div>
+          <div className="cx-dash-metrics">
+            {metrics.map((m) => (
+              <div className="cx-dash-metric" key={m.c}>
+                <span>{m.c}</span>
+                <strong>{m.v}</strong>
+              </div>
+            ))}
+          </div>
+          <blockquote className="cx-dash-quote">
+            <Quote size={20} />
+            <p>Quality care is not an act, it is a habit.</p>
+            <cite>— Aristotle</cite>
+          </blockquote>
+        </section>
       </div>
     </div>
   );
